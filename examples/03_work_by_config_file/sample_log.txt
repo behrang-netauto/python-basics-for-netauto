@@ -1,0 +1,49 @@
+*Oct 23 13:49:41.730: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:49:41.730: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+ --More-- 
+*Oct 23 13:49:48.901: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:49:48.901: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+ --More-- 
+*Oct 23 13:49:59.142: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:49:59.142: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+ --More-- 
+*Oct 23 13:50:12.454: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:50:12.454: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+  neighbor 2001:4:4:4::4 activate
+ exit-address-family
+R3#       
+R3#
+R3#
+*Oct 23 13:50:22.695: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:50:22.696: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:50:32.936: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:50:32.936: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:50:44.201: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:50:44.201: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:50:52.395: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:50:52.395: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:51:00.588: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:51:00.589: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:51:11.852: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:51:11.853: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:51:26.192: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:51:26.192: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+*Oct 23 13:51:39.506: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:51:39.507: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+R3#
+*Oct 23 13:51:47.701: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:51:47.701: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+R3#
+R3#
+R3#sh run | sec        
+*Oct 23 13:51:54.872: %BGP-5-NBR_RESET: Neighbor 2.2.2.2 active reset (Peer closed the session)
+*Oct 23 13:51:54.872: %BGP_SESSION-5-ADJCHANGE: neighbor 2.2.2.2 IPv4 Unicast topology base removed from session  Peer closed the session
+

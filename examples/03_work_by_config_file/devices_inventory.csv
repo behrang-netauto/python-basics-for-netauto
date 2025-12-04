@@ -1,0 +1,3 @@
+site,hostname,mgmt_ip
+BER1,ber1-core-1,10.10.10.11
+BER2,ber2-core-1,10.10.20.11
