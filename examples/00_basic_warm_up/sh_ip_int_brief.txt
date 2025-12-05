@@ -1,0 +1,7 @@
+
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet1/0/1   192.168.1.1     YES manual up                    up
+GigabitEthernet1/0/2   unassigned      YES unset  administratively down down
+GigabitEthernet1/0/3   10.0.0.1        YES DHCP   up                    up
+Loopback0              1.1.1.1         YES manual up                    up
+Vlan10                 172.16.10.1     YES manual down			down                    
