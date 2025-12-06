@@ -1,7 +1,7 @@
 
-from typing import Iterable
+from typing import Iterable, Iterator
 
-def get_filtered_ips(filename: str, suffixes: Iterable[str]) -> Iterable[str]:  
+def get_filtered_ips(filename: str, suffixes: Iterable[str]) -> Iterator[str]:  
     try:
         with open(filename, "r") as f:
             for line in f:

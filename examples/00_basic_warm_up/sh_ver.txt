@@ -17,7 +17,7 @@ Hardware
   Device name: Leaf-1
   bootflash:    8598528 kB
 
-Kernel uptime is 0 day(s), 2 hour(s), 28 minute(s), 29 second(s)
+Kernel uptime is 1 year, 11 weeks, 0 day(s), 2 hour(s), 28 minute(s), 29 second(s)
 
 Last reset 
   Reason: Unknown
