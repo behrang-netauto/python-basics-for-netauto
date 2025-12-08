@@ -1,0 +1,5 @@
+%SYS-5-CONFIG_I: Configured from console by vty0
+%LINK-3-UPDOWN: Interface Gi1/0/1, changed state to down
+%SEC-6-IPACCESSLOGP: list 101 denied tcp ...
+%SEC-3-ERROR: SSL handshake error from 10.1.1.10
+%SEC-3-Error: something else
