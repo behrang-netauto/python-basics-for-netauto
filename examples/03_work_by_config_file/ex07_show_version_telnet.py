@@ -11,15 +11,16 @@ def main() -> None:
     HOST = "192.168.2.45"
     COMMAND = "sh version"
 
+    username = input("enter username: ").strip()
+    password = getpass.getpass("password: ")
+
     device = {
+        "device_type": "cisco_ios",
         "host": HOST,
-        "username": user,
+        "username": username,
         "password": password,
     }
     
-    user = input("enter user nsme: ").strip()
-    password = getpass.getpass("password: ")
-
     conn = ConnectHandler(**device)
     output = conn.send_command(COMMAND)
     conn.disconnect()
@@ -29,11 +30,11 @@ def main() -> None:
     out_file = base_dir / "sh_version.txt"
     out_file.write_text(output)
 
-    math_version = pattern.search(out_file)
+    match_version = pattern.search(output)
 
-    if math_version:
-        part_num = math_version.group(1)
-        version = math_version.group(2)
+    if match_version:
+        part_num = match_version.group(1)
+        version = match_version.group(2)
         print(f"{part_num} {version}")
     else:
         print("not found!!")
