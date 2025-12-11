@@ -83,7 +83,7 @@ def main() -> None:
     home_dir = Path.home()
     base_dir = home_dir / "Documents" / "Python" / "Code/netauto_example_01" / "python-basics-for-netauto" / "examples" / "03_work_by_config_file"
     base_dir.mkdir(parents=True, exist_ok=True)
-    out_file = base_dir / "log_ping_v2.txt"
+    out_file = base_dir / "log_ping_pars.txt"
 
     with out_file.open("w", encoding="utf-8") as f:    #Path.open(mode="r", encoding=None,...)
             for ip in ips:
@@ -95,7 +95,7 @@ def main() -> None:
                         expect_string=r"#",
                     )
                     if "Success rate is 0 percent" in out_put:
-                        status = "PING_FAIL_ICPM"
+                        status = "PING_FAIL_ICMP"
                     elif "Success rate is" in out_put:
                         status = "PING_OK"
                     else:

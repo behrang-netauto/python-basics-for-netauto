@@ -1,14 +1,14 @@
 
 -----PING 192.168.2.55-----
-STAUS: Ping is fail: ICPM
+STATUS: PING_FAIL_ICMP
 Type escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to 192.168.2.55, timeout is 2 seconds:
 .....
 Success rate is 0 percent (0/5)
 
 -----PING 192.168.2.54-----
-STAUS: Ping is OK
+STATUS: PING_OK
 Type escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to 192.168.2.54, timeout is 2 seconds:
 !!!!!
-Success rate is 100 percent (5/5), round-trip min/avg/max = 1/1/1 ms
+Success rate is 100 percent (5/5), round-trip min/avg/max = 1/1/2 ms
