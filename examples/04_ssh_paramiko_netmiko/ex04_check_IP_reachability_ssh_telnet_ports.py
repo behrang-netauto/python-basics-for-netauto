@@ -15,10 +15,6 @@ def check_port(ip: str, ports: tuple[int, ...] = (22, 23), timeout:float = 3.0) 
         "ports": {},
         "error": None,
     }
-    if not ip:
-        result["error"] = "missing_ip"
-        return result
-    
     cmd = ["ping", "-c", "3", ip]
     result_ping = subprocess.run(cmd, capture_output=True, text=True)
     out_put = result_ping.stdout
@@ -55,15 +51,18 @@ def main() -> None:
     for device in devices:
         ip = device.get("ip", "")
         site = device.get("site", "")
+        
+        if not ip:
+            missing_ips.append(site)
+            continue
+
         r = check_port(ip)
         
         total_ips += 1
 
-        if r["error"] == "missing_ip":
-            missing_ips.append(site)
-            continue
-        elif r["error"] == "unreachable_ip":
+        if r["error"] == "unreachable_ip":
             unreachable_ips.append(ip)
+            continue
         elif r["ports"].get(22) == "open" and r["ports"].get(23) == "open":
             open_both_ips.append(ip)
             continue
