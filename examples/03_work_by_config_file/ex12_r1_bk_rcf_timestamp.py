@@ -1,7 +1,7 @@
 
 import getpass
 from netmiko import ConnectHandler
-from netmiko.exceptions import ReadTimeout
+from netmiko.exceptions import ReadTimeout, NetmikoAuthenticationException, NetmikoTimeoutException
 from pathlib import Path
 from datetime import datetime
 
@@ -35,7 +35,9 @@ def main() -> None:
     }
     
     conn = ConnectHandler(**device)
+    conn.enable()
 
+    conn = None
     try:
         output = conn.send_command_timing(cmd)
         output += conn.send_command_timing("")   #Address or name of remote host
@@ -45,11 +47,12 @@ def main() -> None:
 
         print(output)
 
-    except ReadTimeout:
-        print("maybe the transfer took too long!!!")
+    except (ReadTimeout, NetmikoTimeoutException, NetmikoAuthenticationException) as error:
+        print(F"maybe the transfer took too long: {error}!!!")
 
     finally:
-        conn.disconnect()
+        if conn is not None:
+            conn.disconnect()
 
 
 
@@ -57,3 +60,21 @@ if __name__ == "__main__":
     main()
 
 
+'''
+from netmiko import BaseConnection
+
+def send_command_with_confirm(
+    conn: BaseConnection,
+    command: str,
+    confirm_prompt: str,
+    confirm_answer: str = "yes",
+) -> str:
+
+    output = conn.send_command_timing(command)
+
+    if confirm_prompt in output:
+        output += conn.send_command_timing(confirm_answer)
+    
+    return output
+
+'''
