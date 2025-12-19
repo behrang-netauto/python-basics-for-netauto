@@ -1,0 +1,23 @@
+{
+  "transport_error": "No SNMP response received before timeout",
+  "oids": {
+    "1.3.6.1.2.1.1.1.0": {
+      "ok": false,
+      "value": null,
+      "error": null,
+      "response_oid": null
+    },
+    "1.3.6.1.2.1.1.2.0": {
+      "ok": false,
+      "value": null,
+      "error": null,
+      "response_oid": null
+    },
+    "1.3.6.1.2.1.1.3.0": {
+      "ok": false,
+      "value": null,
+      "error": null,
+      "response_oid": null
+    }
+  }
+}

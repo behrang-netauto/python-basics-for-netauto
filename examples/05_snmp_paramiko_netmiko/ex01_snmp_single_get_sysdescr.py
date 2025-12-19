@@ -1,4 +1,6 @@
 
+#SingleـGET_SNMP
+
 import asyncio
 from typing import Any, Sequence, Tuple, NamedTuple, AsyncIterator
 from pysnmp.hlapi.v3arch.asyncio import (
@@ -57,12 +59,14 @@ async def main() -> None:
     oid_num = "1.3.6.1.2.1.1.1.0"
 
     async for errInd, errStat, errIdx, varBinds in snmp_get_sysdescr(target_ip, oid_num):
-        
-        raise_snmp_error(errInd, errStat, errIdx, varBinds)
 
-        
-        for oid, val in varBinds:
-            print(f"{oid.prettyPrint()} = {val.prettyPrint()}")
+        try:
+            raise_snmp_error(errInd, errStat, errIdx, varBinds)
+        except (SnmpEngineError, SnmpPduError) as e:
+             print("SNMP failed:", e)
+        else:
+            for oid, val in varBinds:
+                print(f"{oid.prettyPrint()} = {val.prettyPrint()}")
         
 if __name__ == "__main__":
     asyncio.run(main())
