@@ -1,0 +1,9 @@
+{
+  "transport_error": null,
+  "items": {
+    "1": {
+      "ifDescr": "Ethernet0/0",
+      "ifAlias": "test_for_snmp"
+    }
+  }
+}

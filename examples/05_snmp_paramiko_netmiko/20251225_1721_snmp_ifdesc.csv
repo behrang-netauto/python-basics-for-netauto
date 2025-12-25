@@ -1,0 +1,2 @@
+ip,ifIndex,ifName,ifAlias
+192.168.2.45,1,Ethernet0/0,test_for_snmp
