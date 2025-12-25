@@ -1,0 +1,8 @@
+timestamp,ip,cpu_percent
+20251225_222545,192.168.2.45,1
+timestamp,ip,cpu_percent
+20251225_222615,192.168.2.45,0
+timestamp,ip,cpu_percent
+20251225_222645,192.168.2.45,0
+timestamp,ip,cpu_percent
+20251225_222715,192.168.2.45,0
