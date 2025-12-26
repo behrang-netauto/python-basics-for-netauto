@@ -1,0 +1,4 @@
+
+-----success-----
+
+{'show processes cpu sorted | ex 0.00': 'CPU utilization for five seconds: 3%/0%; one minute: 3%; five minutes: 1%\n PID Runtime(ms)     Invoked      uSecs   5Sec   1Min   5Min TTY Process \n  49        4166       17871        233  2.55%  1.99%  0.97%   0 TTY Background   \n 317         820       12548         65  0.63%  0.41%  0.20%   0 EEM ED Syslog    \n  83        1230        7325        167  0.15%  0.15%  0.06%   0 IP Input         \n  47         128        3210         39  0.07%  0.05%  0.03%   0 Logger           \n 278        6924      275053         25  0.07%  0.02%  0.01%   0 MMA DB TIMER     \n  75        6893      275058         25  0.07%  0.03%  0.02%   0 VRRS Main thread \n 137        8190      503959         16  0.07%  0.03%  0.05%   0 IPAM Manager     '}
