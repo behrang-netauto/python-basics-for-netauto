@@ -3,9 +3,8 @@
 
 import asyncio
 import csv
-import json
 from datetime import datetime
-from typing import Any, Sequence, Tuple, NamedTuple, AsyncIterator, TypedDict
+from typing import Any, Sequence, Tuple, NamedTuple, TypedDict
 from pysnmp.hlapi.v3arch.asyncio import (
     SnmpEngine,
     UsmUserData,
@@ -34,7 +33,7 @@ class SnmpCsvResult(TypedDict):
 TARGET_IP = "192.168.2.45"
 REQUESTED_OID = "1.3.6.1.4.1.9.2.1.56.0"
 
-async def snmp_get_cpu(REQUESTED_OID: str, transport, eng):
+async def snmp_get_cpu(REQUESTED_OID: str, transport: UdpTransportTarget, eng: SnmpEngine) -> SnmpTupleResult:
     
     oid_type = ObjectType(ObjectIdentity(REQUESTED_OID))
 
@@ -55,7 +54,7 @@ async def snmp_get_cpu(REQUESTED_OID: str, transport, eng):
 
     return SnmpTupleResult(*result)
 
-def raise_snmp_error(errInd: Any, errStat: Any, REQUESTED_OID: str):
+def raise_snmp_error(errInd: Any, errStat: Any, REQUESTED_OID: str) -> None:
     if errInd:
             raise SnmpEngineError(str(errInd))
     if errStat:
@@ -66,40 +65,57 @@ async def main() -> None:
     transport = await UdpTransportTarget.create((TARGET_IP, 161), timeout=2, retries=1)
     eng = SnmpEngine()
 
-    while True:
+    iterations: int = 4 * 60 * 2
+    threshold: int = 80
 
-        errInd, errStat, errIdx, varBinds = await snmp_get_cpu(REQUESTED_OID, transport, eng)
+    fieldnames: list[set] = ["timestamp", "ip", "cpu_percent"]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        try:
-            raise_snmp_error(errInd, errStat, REQUESTED_OID)
+    try:
+        with open(f"{timestamp}_snmp_cpucpm_CPUTotal5sec.csv", "a", newline="", encoding="utf-8") as f:
+            
+            writer = csv.DictWriter(f, fieldnames=fieldnames)     
+            writer.writeheader()
 
-        except (SnmpEngineError, SnmpPduError) as e:
-            print("SNMP failed:", e)
+            for _ in range(iterations):
 
-        else:
-            for response_oid, val in varBinds:
-                full_oid = response_oid.prettyPrint()
-                text = val.prettyPrint()
-                if text.startswith("No Such Instance") or text.startswith("No Such Object"):
-                    text = None
-                print(f"{full_oid} = {text}")
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                fieldnames = ["timestamp", "ip", "cpu_percent"]
+                errInd, errStat, errIdx, varBinds = await snmp_get_cpu(REQUESTED_OID, transport, eng)
+
                 try:
-                    with open("snmp_cpucpm_CPUTotal5sec.csv", "a", newline="", encoding="utf-8") as f:
-                        writer = csv.DictWriter(f, fieldnames=fieldnames)
-                        
-                        writer.writeheader()
+                    raise_snmp_error(errInd, errStat, REQUESTED_OID)
+
+                except (SnmpEngineError, SnmpPduError) as e:
+                    print("SNMP failed:", e)
+
+                else:
+                    for response_oid, val in varBinds:
+                        full_oid = response_oid.prettyPrint()
+                        text = val.prettyPrint()
+                        if text.startswith("No Such Instance") or text.startswith("No Such Object"):
+                            text = None
+                        print(f"{full_oid} = {text}")
+                                                
                         result_csv: SnmpCsvResult = {
                             "timestamp": timestamp,
                             "ip": TARGET_IP,
                             "cpu_percent": text,
                         }
-                        writer.writerow(result_csv)
-                except OSError as error:
-                    print(f"error writing CSV: {error}")
+                        try:
+                            writer.writerow(result_csv)
+                        except OSError as error:
+                            print(f"error writing CSV: {error}")
+                        
+                        if text in (None, "None"):
+                            continue
+                        value_cpu = int(text)
+                        if value_cpu >= threshold:
+                            print(f"WARNING: CPU USAGE is: {value_cpu}")
+                            continue
 
-        await asyncio.sleep(30)
+                await asyncio.sleep(30)
+
+    except OSError as error:
+        print(f"error opening CSV: {error}")        
            
 if __name__ == "__main__":
     asyncio.run(main())
