@@ -3,7 +3,7 @@
 
 import getpass
 from netmiko import ConnectHandler
-from netmiko.exceptions import (ReadTimeout, NetMikoAuthenticationException, NetmikoTimeoutException)
+from netmiko.exceptions import (ReadTimeout, NetmikoAuthenticationException, NetmikoTimeoutException)
 from pathlib import Path
 
 def main() -> None:
@@ -36,7 +36,7 @@ def main() -> None:
             output = conn.send_command(COMMAND, read_timeout= 15, expect_string=r"#")
             log_block = f"\n-----success-----\n\n{output}\n"
 
-        except (ReadTimeout, NetMikoAuthenticationException, NetmikoTimeoutException) as error:
+        except (ReadTimeout, NetmikoAuthenticationException, NetmikoTimeoutException) as error:
             log_block = f"\n-----failed-----\n\n{type(error).__name__}: {error}\n"
             
         except Exception as error:

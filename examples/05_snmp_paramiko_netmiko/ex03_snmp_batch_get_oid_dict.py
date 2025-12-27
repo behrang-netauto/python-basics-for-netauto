@@ -49,7 +49,7 @@ class SnmpRunResult(TypedDict):
     transport_error: str | None
     oids: dict[str, OidStatus]
 
-async def snmp_get_sysdescr(target_ip: str, oid_nums: Sequence[str]) -> AsyncIterator[SnmpTupleResult]:
+async def snmp_get_oids(target_ip: str, oid_nums: Sequence[str]) -> AsyncIterator[SnmpTupleResult]:
     transport = await UdpTransportTarget.create((target_ip, 161), timeout=5, retries=1)
     oid_types = [ObjectType(ObjectIdentity(oid_num)) for oid_num in oid_nums]
 
@@ -96,7 +96,7 @@ async def main() -> SnmpRunResult:
         },
     }
 
-    async for errInd, errStat, errIdx, varBinds in snmp_get_sysdescr(target_ip, oid_nums):
+    async for errInd, errStat, errIdx, varBinds in snmp_get_oids(target_ip, oid_nums):
 
         try:
             raise_snmp_error(errInd, errStat, errIdx, varBinds, oid_nums)
@@ -107,10 +107,10 @@ async def main() -> SnmpRunResult:
             return result
         
         except SnmpPduError as e:
-            print("Bath PDU error:", e, "| bad_oid =", e.bad_oid)
+            print("SNMP PDU error:", e, "| bad_oid =", e.bad_oid)
 
             for oid in oid_nums:
-                async for errInd, errStat, errIdx, varBinds in snmp_get_sysdescr(target_ip, [oid]):
+                async for errInd, errStat, errIdx, varBinds in snmp_get_oids(target_ip, [oid]):
                     try:
                         raise_snmp_error(errInd, errStat, errIdx, varBinds, [oid])
                     
@@ -137,7 +137,7 @@ async def main() -> SnmpRunResult:
             return result
       
         else:
-            resp_map = {responce_oid.prettyPrint(): val.prettyPrint() for responce_oid, val in varBinds}
+            resp_map = {response_oid.prettyPrint(): val.prettyPrint() for response_oid, val in varBinds}
             for oid in oid_nums:
                 if oid in resp_map:
                     result["oids"][oid]["ok"] = True

@@ -25,7 +25,7 @@ class SnmpEngineError(RuntimeError): ...
 class SnmpPduError(RuntimeError): ...
 
 
-async def snmp_get_sysdescr(target_ip: str, oids: Sequence[str]) -> AsyncIterator[SnmpTupleResult]:
+async def snmp_get_oids(target_ip: str, oids: Sequence[str]) -> AsyncIterator[SnmpTupleResult]:
     transport = await UdpTransportTarget.create((target_ip, 161), timeout=5, retries=1)
     oid_types = [ObjectType(ObjectIdentity(oid_num)) for oid_num in oids]
 
@@ -59,7 +59,7 @@ async def main() -> None:
     target_ip = "192.168.2.55"
     oids = ["1.3.6.1.2.1.1.1.0", "1.3.6.1.2.1.1.2.0", "1.3.6.1.2.1.1.3.0"]
 
-    async for errInd, errStat, errIdx, varBinds in snmp_get_sysdescr(target_ip, oids):
+    async for errInd, errStat, errIdx, varBinds in snmp_get_oids(target_ip, oids):
 
         try:
             raise_snmp_error(errInd, errStat, errIdx, varBinds, oids)
@@ -68,7 +68,7 @@ async def main() -> None:
             return
         except SnmpPduError as e:
             for oid in oids:
-                async for errInd, errStat, errIdx, varBinds in snmp_get_sysdescr(target_ip, [oid]):
+                async for errInd, errStat, errIdx, varBinds in snmp_get_oids(target_ip, [oid]):
                     try:
                         raise_snmp_error(errInd, errStat, errIdx, varBinds, [oid])
                     except SnmpPduError as e:

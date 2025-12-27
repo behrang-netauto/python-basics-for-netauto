@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from netmiko import ConnectHandler
 from netmiko.exceptions import (ReadTimeout, NetmikoAuthenticationException, NetmikoTimeoutException)
+from datetime import datetime
 
 def push_snmp(
         cmds: list[str], 
@@ -46,12 +47,12 @@ def push_snmp(
         cfg_out = conn.send_config_set(config_cmds)
         final_out["cfg_out"] = cfg_out
         
+        save_out = ""
         try:
             save_out = conn.save_config()
-            final_out["save_out"] = save_out
         except Exception:
-            save_out = conn.send_command("write memory")
-            final_out["save_out"] = save_out
+            save_out += "\n" + conn.send_command("write memory")
+        final_out["save_out"] = save_out
         
         conn.send_command("terminal length 0")
         outs = {c: conn.send_command(c, use_textfsm=True) for c in cmds}
@@ -72,14 +73,14 @@ def push_snmp(
 def main() -> dict:
     devices = [
     {"device_type": "cisco_ios", "site": "A", "ip": "192.168.2.45"},
-    {"device_type": "cisco_ios", "site": "B", "ip": "192.168.2.46"},
+    {"device_type": "cisco_ios", "site": "B", "ip": "192.168.2.48"},
     ]
     cmds = ["show snmp user", "show snmp group"]
     
     config_cmds = [
             "snmp-server view MONITOR-VIEW iso included",
             "snmp-server group MONITOR-GRP v3 priv read MONITOR-VIEW",
-            "snmp-server user SNMPUser1 MONITOR-GRP v3 auth md5 AUTHPass1 priv aes 128 PRIVPass1",
+            "snmp-server user SNMPUser1 MONITOR-GRP v3 auth sha AUTHPass1 priv aes 128 PRIVPass1",
             "snmp-server enable traps",
             "snmp-server host 192.168.2.55 version 3 priv SNMPUser1",
         ]
@@ -88,6 +89,8 @@ def main() -> dict:
     base_dir = home_dir / "Documents" / "Python" / "Code/netauto_example_01" / "python-basics-for-netauto" / "examples" / "05_snmp_paramiko_netmiko"
     logs_dir = base_dir / "snmp_logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
     for device in devices:
         ip = device.get("ip", "")
@@ -96,7 +99,7 @@ def main() -> dict:
         if not ip:
             continue
         
-        out_file = logs_dir / f"{site}_{ip}_snmp_show_commands.cfg"
+        out_file = logs_dir / f"{timestamp}_{site}_{ip}_snmp_show_commands.cfg"
 
         print(f"connecting via ssh------user/pass for {ip}:")
         username = input("Username: ").strip()
@@ -122,6 +125,7 @@ except AttributeError:
     outs = "\n\n".join(conn.send_command(c) for c in cmds)
 
 '''
-
+#raw_user = conn.send_command("show snmp user", use_textfsm=False)
+#print(raw_user)
         
     
