@@ -1,0 +1,13 @@
+# Python venv
+.venv/
+venv/
+
+# Outputs/logs should not be committed
+examples/**/outputs/
+logs/
+*.log
+*.csv
+*.xlsx
+
+# Secrets
+.env

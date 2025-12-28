@@ -1,0 +1,58 @@
+# Core network automation libs
+netmiko
+paramiko
+scrapli
+scrapli_cfg
+scrapli_community
+scrapli_netconf
+nornir
+nornir-jinja2
+nornir-netmiko
+nornir-netbox
+nornir-utils
+
+# Cisco pyATS / Genie ecosystem
+pyats
+genie
+genie.libs.clean
+genie.libs.conf
+genie.libs.filetransferutils
+genie.libs.health
+genie.libs.ops
+genie.libs.parser
+genie.libs.robot
+genie.libs.sdk
+unicon
+unicon.plugins
+yang.connector
+rest.connector
+
+# SNMP & telemetry
+pysnmp
+pysmi
+
+# Templates & parsing
+ntc_templates
+textfsm
+Jinja2
+
+# Infra / automation tools
+ansible
+ansible-core
+pyftpdlib
+tftpy
+scp
+requests
+PyYAML
+ruamel.yaml
+rich
+
+# Data handling & reports
+numpy
+pandas
+xlsxwriter
+xlrd
+xlwt
+
+# Messaging
+twilio

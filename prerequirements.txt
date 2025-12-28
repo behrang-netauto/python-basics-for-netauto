@@ -1,0 +1,39 @@
+---- for linux_ubuntu (example: user 'lab' on Ubuntu 24.04) ----
+cd /home/lab
+
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip git
+
+python3 --version  # should be 3.12.x on Ubuntu 24.04+
+
+git clone https://github.com/behrang-netauto/python-basics-for-netauto.git
+cd python-basics-for-netauto
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+
+---- for macOS (zsh/bash, with Homebrew) ----
+# Install Homebrew if you don't have it yet (optional here, just for reference):
+# /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python 3 and git via Homebrew
+brew update
+brew install python git
+
+python3 --version  # ideally 3.11+ or 3.12+
+
+# Choose a parent directory for your projects
+cd ~/Documents/Python/Code
+
+git clone https://github.com/behrang-netauto/python-basics-for-netauto.git
+cd python-basics-for-netauto
+
+python3 -m venv .venv
+source .venv/bin/activate   # works for zsh and bash
+
+pip install --upgrade pip
+pip install -r requirements.txt
