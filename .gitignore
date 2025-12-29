@@ -3,7 +3,7 @@
 venv/
 
 # Outputs/logs should not be committed
-examples/**/outputs/
+examples/**/output/
 logs/
 *.log
 *.csv
