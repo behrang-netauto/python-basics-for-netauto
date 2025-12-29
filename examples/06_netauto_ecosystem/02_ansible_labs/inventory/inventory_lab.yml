@@ -1,0 +1,11 @@
+ios:
+  hosts:
+    r1:
+      ansible_host: 192.168.2.45
+    r2:
+      ansible_host: 192.168.2.48
+  vars:
+    ansible_user: test
+    ansible_password: test
+    ansible_network_os: ios
+    ansible_connection: network_cli

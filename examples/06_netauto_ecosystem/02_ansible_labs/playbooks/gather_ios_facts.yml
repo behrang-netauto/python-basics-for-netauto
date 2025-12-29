@@ -1,0 +1,30 @@
+
+- name: gathering IOS facts and print to monitor, write to file
+  hosts: ios
+  gather_facts: false
+  vars:
+    timestamp: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
+
+  tasks:
+    - name: Gather IOS facts
+      cisco.ios.ios_facts:
+      register: facts_out
+
+    - name: Print to screen (json)
+      ansible.builtin.debug:
+        msg: "{{ facts_out | to_nice_json }}"
+
+    - name: Check output directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../output"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Write facts to a json file (one file per host)
+      ansible.builtin.copy:
+        content: "{{ facts_out | to_nice_json }}"
+        dest: "{{ playbook_dir}}/../output/{{ inventory_hostname }}_ios_facts_{{ timestamp}}.json"
+        mode: "0644"
+      delegate_to: localhost
