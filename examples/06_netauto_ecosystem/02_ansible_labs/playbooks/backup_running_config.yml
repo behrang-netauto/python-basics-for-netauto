@@ -1,0 +1,31 @@
+---
+- name: Backup running_config and write to file
+  hosts: ios
+  gather_facts: false
+  vars:
+    timestamp: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
+
+  tasks:
+    - name: Get running_config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config
+      register: config_out
+
+    - name: Print to screen
+      ansible.builtin.debug:
+        msg: "{{ config_out }}"
+
+    - name: Check output directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/../output"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Write running-config to file (one file per host)
+      ansible.builtin.copy:
+        content: "{{ config_out.stdout[0] }}\n"
+        dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_running_config_{{ timestamp }}.cfg"
+        mode: "0644"
+      delegate_to: localhost
