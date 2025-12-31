@@ -1,7 +1,11 @@
-
-- name: gathering IOS facts and print to monitor, write to file
+---
+- name: Gathering IOS facts and print to monitor, write to file
   hosts: ios
   gather_facts: false
+
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/ios/vault.yml"
+  
   vars:
     timestamp: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
 
@@ -20,11 +24,10 @@
         state: directory
         mode: "0755"
       delegate_to: localhost
-      run_once: true
 
     - name: Write facts to a json file (one file per host)
       ansible.builtin.copy:
         content: "{{ facts_out | to_nice_json }}"
-        dest: "{{ playbook_dir}}/../output/{{ inventory_hostname }}_ios_facts_{{ timestamp}}.json"
+        dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_ios_facts_{{ timestamp }}.json"
         mode: "0644"
       delegate_to: localhost

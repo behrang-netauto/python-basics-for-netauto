@@ -2,8 +2,19 @@
 - name: Backup running_config and write to file
   hosts: ios
   gather_facts: false
+
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/ios/vault.yml"
+
   vars:
-    timestamp: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
+    backup_dir: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_{{ run_st }}"
+
+  pre_tasks:
+    - name: Set timestamp once
+      ansible.builtin.set_fact:
+        run_st: "{{ lookup('pipe', 'date +%Y%m%dT%H%M%S') }}"
+      run_once: true
+      delegate_to: localhost
 
   tasks:
     - name: Get running_config
@@ -15,17 +26,24 @@
     - name: Print to screen
       ansible.builtin.debug:
         msg: "{{ config_out }}"
-
-    - name: Check output directory
+  
+    - name: Create directory
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/../output"
+        path: "{{ backup_dir }}"
         state: directory
         mode: "0755"
       delegate_to: localhost
 
+#    - name: Check output directory
+#     ansible.builtin.file:
+#       path: "{{ playbook_dir }}/../output"
+#        state: directory
+#        mode: "0755"
+#     delegate_to: localhost
+
     - name: Write running-config to file (one file per host)
       ansible.builtin.copy:
         content: "{{ config_out.stdout[0] }}\n"
-        dest: "{{ playbook_dir }}/../output/{{ inventory_hostname }}_running_config_{{ timestamp }}.cfg"
+        dest: "{{ backup_dir }}/{{ inventory_hostname }}_running_config_{{ run_st }}.cfg"
         mode: "0644"
       delegate_to: localhost
