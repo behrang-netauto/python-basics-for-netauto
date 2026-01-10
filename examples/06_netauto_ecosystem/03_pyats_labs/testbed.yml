@@ -10,27 +10,27 @@ devices:
   Router-1:
     alias: Router-1
     type: router
-    os: iosxe
-    platform: cisco_xe
+    os: ios
+    #platform: iol
     connections:
     #  default:
     #    class: unicon.Unicon
     #    connections: [cli]
       cli:
         protocol: ssh
-        ip: 192.168.2.45
+        ip: 192.168.56.2
         port: 22
 
   Router-2:
     alias: Router-2
     type: router
     os: iosxe
-    platform: cisco_xe
+    #platform: cisco_xe
     connections:
     #  default:
     #    class: unicon.Unicon
     #    connections: [cli]
       cli:
         protocol: ssh
-        ip: 192.168.2.48
+        ip: 192.168.56.3
         port: 22
