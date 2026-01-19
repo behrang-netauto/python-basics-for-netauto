@@ -11,26 +11,52 @@ devices:
     alias: Router-1
     type: router
     os: ios
-    #platform: iol
+    platform: iol 
     connections:
     #  default:
     #    class: unicon.Unicon
     #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.20
+        port: 23
       cli:
         protocol: ssh
-        ip: 192.168.56.2
+        ip: 192.168.56.20
         port: 22
 
   Router-2:
     alias: Router-2
     type: router
-    os: iosxe
-    #platform: cisco_xe
+    os: ios
+    platform: iol
     connections:
     #  default:
     #    class: unicon.Unicon
     #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.21
+        port: 23
       cli:
         protocol: ssh
-        ip: 192.168.56.3
+        ip: 192.168.56.21
+        port: 22
+
+  Router-3:
+    alias: Router-3
+    type: router
+    os: ios
+    platform: iol
+    connections:
+    #  default:
+    #    class: unicon.Unicon
+    #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.22
+        port: 23
+      cli:
+        protocol: ssh
+        ip: 192.168.56.22
         port: 22

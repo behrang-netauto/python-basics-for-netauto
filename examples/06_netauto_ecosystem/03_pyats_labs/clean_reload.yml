@@ -1,0 +1,49 @@
+cleaners:
+  DeviceClean:
+    module: genie.libs.clean
+    groups: [ios]
+
+groups:
+  ios:
+    devices:
+      - Router-1
+      - Router-2
+
+    connect:
+      via: console
+
+    #write_erase:
+
+    reload:
+      reconnect_via: console
+      reload_service_args:
+        timeout: 600
+        prompt_recovery: true
+        reload_command: "reload"
+      check_modules:
+        check: false
+
+    apply_configuration:
+      configuration: |
+        no logging console
+        service timestamps debug datetime msec
+        config-register 0x2102
+
+    order: 
+      - connect
+      # - write_erase
+      - reload
+      - apply_configuration
+
+
+
+#devices:
+#  Router-1:
+#    clean:
+#      reload:
+#        via: console
+#        timeout: 600
+#        reconnect_sleep: 20
+#        prompt_recovery: true
+#        reload_command: "reload"
+
