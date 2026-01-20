@@ -7,8 +7,8 @@ genie_get_up_time.py
 - Save uptime to CSV and TXT table
 
 Run:
-  source /Users/behrang/Documents/Python/.venv/bin/activate
-  python scripts/genie_get_up_time.py
+  source /path/to/your/Python/.venv/bin/activate
+  python genie_get_up_time_csv_txt_table.py
 """
 
 from genie.testbed import load
