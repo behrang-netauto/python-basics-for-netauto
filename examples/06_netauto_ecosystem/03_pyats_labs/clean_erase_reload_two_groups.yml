@@ -1,0 +1,117 @@
+cleaners:
+  DeviceClean:
+    module: genie.libs.clean
+    groups: [ios, test1_group, test2_group]
+
+groups:
+  test1_group:
+    devices:
+      - Router-4
+    
+    connect:
+      via: console
+    
+    write_erase:
+
+    reload:
+      reconnect_via: console
+      reload_service_args:
+        timeout: 600
+        prompt_recovery: true
+        reload_command: "reload"
+      check_modules:
+        check: false
+    
+    apply_configuration:
+      configuration: |
+        config-register 0x2102
+        hostname Router-4
+        ip domain name test.test
+        username test privilege 15 secret test
+        crypto key generate rsa modulus 2048
+        ip ssh version 2
+        line vty 0 4
+          login local
+          transport input telnet ssh
+        interface e0/0
+          no ip dhcp client client-id
+          ip address 192.168.56.23 255.255.255.0
+          no shutdown
+    order: 
+      - connect
+      - write_erase
+      - reload
+      - apply_configuration
+  
+  test2_group:
+    devices:
+      - Router-5
+    
+    connect:
+      via: console
+    
+    write_erase:
+
+    reload:
+      reconnect_via: console
+      reload_service_args:
+        timeout: 600
+        prompt_recovery: true
+        reload_command: "reload"
+      check_modules:
+        check: false
+    
+    apply_configuration:
+      configuration: |
+        config-register 0x2102
+        hostname Router-4
+        ip domain name test.test
+        username test privilege 15 secret test
+        crypto key generate rsa modulus 2048
+        ip ssh version 2
+        line vty 0 4
+          login local
+          transport input telnet ssh
+        interface e0/0
+          no ip dhcp client client-id
+          ip address 192.168.56.24 255.255.255.0
+          no shutdown
+    order: 
+      - connect
+      - write_erase
+      - reload
+      - apply_configuration
+
+  ios:
+    devices:
+      - Router-1
+      - Router-2
+      - Router-3
+
+    connect:
+      via: cli
+  
+    #write_erase:
+
+    reload:
+      reconnect_via: cli
+      reload_service_args:
+        timeout: 600
+        prompt_recovery: true
+        reload_command: "reload"
+      check_modules:
+        check: false
+
+    apply_configuration:
+      configuration: |
+        no logging console
+        service timestamps debug datetime msec
+        config-register 0x2102
+
+    order: 
+      - connect
+      - write_erase
+      - reload
+      - apply_configuration
+
+
