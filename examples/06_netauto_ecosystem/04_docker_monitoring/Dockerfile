@@ -1,0 +1,16 @@
+FROM python:3.12-slim
+
+# 1)
+RUN apt update \
+ && apt install -y --no-install-recommends iputils-ping \
+ && rm -rf /var/lib/apt/lists/*
+
+# 2)
+WORKDIR /app
+
+# 3)
+COPY examples/06_netauto_ecosystem/04_docker_monitoring/ip_reachable_port_telnet_ssh_check.py /app/port_check_runner.py
+
+# 4)
+CMD ["python", "-u", "/app/port_check_runner.py"]
+
