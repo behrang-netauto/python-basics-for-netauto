@@ -1,0 +1,21 @@
+[Unit]
+Description=Port check (Docker one-shot)
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/repo/python-basics-for-netauto
+
+ExecStart=/bin/bash -lc 'set -o pipefail; \
+  /usr/bin/docker run --rm --name portcheck-run \
+  --network host \
+  -v %h/repo/python-basics-for-netauto/examples/06_netauto_ecosystem/04_docker_monitoring/devices.json:/app/devices.json:ro \
+  -e DEVICES_FILE=/app/devices.json \
+  -e PORTS=22,23 \
+  -e TIMEOUT=3 \
+  -e PING_COUNT=3 \
+  portcheck:1.1 \
+  2>&1 | /usr/bin/tee -a %h/logs/portcheck.log'
+
+
+StandardOutput=journal
+StandardError=journal
