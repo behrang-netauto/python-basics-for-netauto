@@ -1,0 +1,37 @@
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # Web UI
+      - "1025:1025"   # SMTP
+    restart: unless-stopped
+
+  portcheck:
+    image: portcheck:1.2
+    build: ./portcheck
+    environment:
+      - DEVICES_FILE=/app/shared/devices.json
+      - OUTPUT_FILE=/app/shared/results.json
+      - TIMEOUT=3
+      - PING_COUNT=3
+    volumes:
+      - ./shared:/app/shared
+    network_mode: host
+    profiles: ["manual"]
+
+  alerter:
+    image: alerter:0.1
+    build: ./alerting
+    environment:
+      - RESULTS_FILE=/app/shared/results.json
+      - STATE_FILE=/app/shared/state.json
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - MAIL_FROM=portcheck@lab.local
+      - MAIL_TO=ops@lab.local
+    volumes:
+      - ./shared:/app/shared
+    depends_on:
+      - mailpit
+    profiles: ["manual"]
+

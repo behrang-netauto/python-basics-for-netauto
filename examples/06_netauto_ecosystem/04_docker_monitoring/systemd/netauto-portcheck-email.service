@@ -1,0 +1,33 @@
+[Unit]
+Description=Port check + email alert (Docker one-shot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/repo/python-basics-for-netauto
+
+ExecStart=/bin/bash -lc 'set -euo pipefail; \
+  MON="%h/repo/python-basics-for-netauto/examples/06_netauto_ecosystem/04_docker_monitoring"; { \
+/usr/bin/docker run --rm --name portcheck-run \
+  --network host \
+  -v "$MON/shared:/shared" \
+  -e DEVICES_FILE=/shared/devices.json \
+  -e OUTPUT_FILE=/shared/results.json \
+  -e TIMEOUT=3 \
+  -e PING_COUNT=3 \
+  portcheck:1.2 && \
+/usr/bin/docker run --rm --network host \
+  -v "$MON/shared:/shared" \
+  -e RESULTS_FILE=/shared/results.json \
+  -e STATE_FILE=/shared/state.json \
+  -e SMTP_HOST=127.0.0.1 \
+  -e SMTP_PORT=1025 \
+  -e MAIL_FROM=portcheck@lab.local \
+  -e MAIL_TO=ops@lab.local \
+  alerter:0.1; \
+} 2>&1 | /usr/bin/tee -a %h/logs/portcheck-email.log'
+
+
+StandardOutput=journal
+StandardError=journal
