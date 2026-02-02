@@ -1,13 +1,34 @@
-# Python venv
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
 .venv/
 venv/
 
-# Outputs/logs should not be committed
+# Outputs/logs
 examples/**/output/
+examples/**/outputs/
 logs/
+snapshots/
 *.log
 *.csv
 *.xlsx
 
 # Secrets
 .env
+
+# Ansible local cache/artifacts
+.ansible/
+
+
+# runtime artifacts
+examples/06_netauto_ecosystem/04_docker_monitoring/shared/results.json
+examples/06_netauto_ecosystem/04_docker_monitoring/shared/state.json
+
+# python import profiling artifacts
+examples/06_netauto_ecosystem/importtime.txt
