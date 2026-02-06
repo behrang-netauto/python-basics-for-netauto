@@ -29,6 +29,11 @@ snapshots/
 # runtime artifacts
 examples/06_netauto_ecosystem/04_docker_monitoring/shared/results.json
 examples/06_netauto_ecosystem/04_docker_monitoring/shared/state.json
+examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/latest
+examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/state
+examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/*.csv
+
+
 
 # python import profiling artifacts
 examples/06_netauto_ecosystem/importtime.txt
