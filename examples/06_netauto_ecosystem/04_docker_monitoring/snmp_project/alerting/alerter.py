@@ -24,7 +24,7 @@ import json
 import logging
 import os
 import sys
-import time
+from datetime import datetime, timezone
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
@@ -56,8 +56,11 @@ log = logging.getLogger("alerter")
 # ----------------------------
 # Helpers
 # ----------------------------
-def now_ts() -> int:
-    return int(time.time())
+def utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+def parse_iso(s: str) -> datetime:
+    return datetime.fromisoformat(s)
 
 def read_json(path: Path) -> dict[str, Any] | None:
     try:
@@ -124,10 +127,19 @@ def process_snapshot(snapshot_path: Path) -> None:
 
     alarm_active = bool(st.get("alarm_active", False))
     last_alert_ts = st.get("last_alert_ts")
-    if not isinstance(last_alert_ts, int):
+    if not isinstance(last_alert_ts, str):
         last_alert_ts = None
 
-    now = now_ts()
+    now_utc = utc_iso()
+    now_dt = parse_iso(now_utc)
+
+    elapsed_sec = None
+    if last_alert_ts:
+        try:
+            elapsed_sec = (now_dt - parse_iso(last_alert_ts)).total_seconds()
+        except Exception:
+            elapsed_sec = None
+
     action: str | None = None
 
     # ----- decision logic -----
@@ -139,17 +151,17 @@ def process_snapshot(snapshot_path: Path) -> None:
         if not alarm_active:
             action = "ALERT"
             alarm_active = True
-            last_alert_ts = now
+            last_alert_ts = now_utc
         else:
-            if last_alert_ts is None or (now - last_alert_ts) >= COOLDOWN_SEC:
+            if last_alert_ts is None or elapsed_sec is None or elapsed_sec >= COOLDOWN_SEC:
                 action = "REMINDER"
-                last_alert_ts = now
+                last_alert_ts = now_utc
 
     elif status == "OK":
         if alarm_active:
             action = "RECOVERY"
             alarm_active = False
-            last_alert_ts = now
+            last_alert_ts = now_utc
 
     # write state always
     new_state = {
@@ -157,7 +169,7 @@ def process_snapshot(snapshot_path: Path) -> None:
         "status": status,
         "alarm_active": alarm_active,
         "last_alert_ts": last_alert_ts,
-        "updated_ts": now,
+        "updated_ts": now_utc,
     }
     atomic_write_json(st_path, new_state)
 
