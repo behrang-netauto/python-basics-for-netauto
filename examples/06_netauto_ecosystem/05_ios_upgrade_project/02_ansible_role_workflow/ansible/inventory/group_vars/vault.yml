@@ -1,0 +1,7 @@
+---
+credentials:
+  default:
+    username: "test"
+    password: "test"
+  enable:
+    password: "test"

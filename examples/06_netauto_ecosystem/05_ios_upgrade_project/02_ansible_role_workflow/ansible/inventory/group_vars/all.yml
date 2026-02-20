@@ -1,0 +1,38 @@
+
+---
+ansible_user: test
+ansible_password: "{{ vault_ansible_password }}"
+ansible_network_os: ios
+ansible_connection: network_cli
+
+ansible_become: true
+ansible_become_method: enable
+ansible_become_password: "{{ vault_enable_password }}"
+
+# --- IOS image on the Ansible controller ---
+ios_image_local_path: "/Volumes/EXTDISK/Cisco-IOS"   # <-- replace with your actual mount path
+ios_image_filename: "cat8k_iosxe.17.09.04a.SPA.bin"  # <-- placeholder name
+ios_image_md5: "0123456789abcdef0123456789abcdef"    # <-- placeholder 32-hex
+ios_image_full_path: "{{ ios_image_local_path }}/{{ ios_image_filename }}"
+
+# --- policy / gates ---
+flash_multiplier: 1.5                # Gate 3: free_mb >= image_mb * flash_multiplier
+ssh_port: 22                         # Gate 1 probe
+require_privilege_level: 15          # Gate 1.1
+
+# --- filesystem / platform differences (parameterize early) ---
+remote_fs: "bootflash:"              # common on IOS-XE (CSR/C8000v). For some devices you may use "flash:"
+remote_dir_cmd: "dir bootflash:"     # command used to parse free space (adjust per platform)
+remote_dest_dir: "bootflash:"        # where image will be copied
+remote_image_dest: "{{ remote_dest_dir }}/{{ ios_image_filename }}"
+
+# --- upload/verify timeouts (tunable later) ---
+scp_enable_before_upload: true
+scp_disable_after_upload: true
+upload_timeout_sec: 1800             # image copy can be slow
+verify_timeout_sec: 1200             # MD5 verify on device can be slow
+
+# --- backup/artifacts ---
+artifacts_root: "artifacts"
+backup_running_config: true
+backup_filename_suffix: "running_pre.txt"

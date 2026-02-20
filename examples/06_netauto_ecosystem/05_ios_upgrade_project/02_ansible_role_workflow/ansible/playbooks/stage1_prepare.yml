@@ -1,0 +1,95 @@
+#{
+#  "run_id": "...",
+#  "image": { "filename": "...", "md5": "...", "size_mb": 823.12 },
+#  "ready_for_reload": [ { "inventory_hostname": "", "host": "" } ],
+#  "not_ready": [ { "inventory_hostname": "", "host": "", "failed_gate": "", "reason": "" } ]
+#}
+---
+- name: Stage 1 - Play 1 | IOS upgrade preparation (pre-check + upload + boot prep)
+  hosts: ios
+  gather_facts: false
+  vars_files:
+    - ../inventory/group_vars/vault.yml
+  
+  pre_tasks:
+    - name: "RunID | check run_id is existing"
+      ansible.builtin.assert:
+        that:
+          - run_id is defined
+          - (run_id | string | length) > 0
+        fail_msg: "run_id is required. Use the wrapper to pass it (e.g. -e run_id=...)."
+      run_once: true
+      delegate_to: localhost
+
+  roles:
+    - ios_upgrade_stage1
+
+- name: Stage 1 - Play 2 | Write handoff details (server side)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    stage1_run_dir: "{{ artifacts_root }}/{{ run_id }}/stage1"
+    stage1_handoff_path: "{{ artifacts_root }}/{{ run_id }}/stage1/stage1_handoff.json"
+
+  tasks:
+    - name: "Handoff | Init lists"
+      ansible.builtin.set_fact:
+        ready_for_reload: []
+        not_ready: []
+
+    - name: "Handoff | Append READY hosts"
+      ansible.builtin.set_fact:
+        ready_for_reload: >-
+          {{
+            ready_for_reload + [
+              {
+                'inventory_hostname': item,
+                'host': (hostvars[item].ansible_host | default(item))
+              }
+            ]
+          }}
+      loop: "{{ groups['ios'] }}"
+      when: (hostvars[item].stage1_status | default('IN_PROGRESS')) == 'READY_FOR_RELOAD'
+
+    - name: "Handoff | Append NOT_READY hosts"
+      ansible.builtin.set_fact:
+        not_ready: >-
+          {{
+            not_ready + [
+              {
+                'inventory_hostname': item,
+                'host': (hostvars[item].ansible_host | default(item)),
+                'failed_gate': (hostvars[item].stage1_failed_gate | default('')),
+                'reason': (hostvars[item].stage1_reason | default(''))
+              }
+            ]
+          }}
+      loop: "{{ groups['ios'] }}"
+      when: (hostvars[item].stage1_status | default('IN_PROGRESS')) != 'READY_FOR_RELOAD'
+
+    - name: "Handoff | Build handoff object"
+      ansible.builtin.set_fact:
+        stage1_handoff_obj:
+          run_id: "{{ run_id }}"
+          image:
+            filename: "{{ ios_image_filename | default('') }}"
+            md5: "{{ ios_image_md5 | default('') | lower }}"
+            size_mb: "{{ hostvars['localhost'].ios_image_size_mb | default(null) }}"
+          ready_for_reload: "{{ ready_for_reload }}"
+          not_ready: "{{ not_ready }}"
+
+    - name: "Handoff | Ensure run directory exists"
+      ansible.builtin.file:
+        path: "{{ stage1_run_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: "Handoff | Write stage1_handoff.json"
+      ansible.builtin.copy:
+        dest: "{{ stage1_handoff_path }}"
+        content: "{{ stage1_handoff_obj | to_nice_json }}\n"
+        mode: "0644"
+
+    - name: "Handoff | Print location"
+      ansible.builtin.debug:
+        msg: "Stage1 handoff written: {{ stage1_handoff_path }}"

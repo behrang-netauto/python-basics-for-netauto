@@ -1,0 +1,72 @@
+
+---
+- name: "Stage 2 | Play 1 | Read handoff + build ready_reload group"
+  hosts: localhost
+  gather_facts: false
+  vars:
+    stage1_run_dir: "{{ artifacts_root }}/{{ run_id }}/stage1"
+    stage1_handoff_path: "{{ stage1_run_dir }}/stage1_handoff.json"
+
+  tasks:
+    - name: "S2P1 | check run_id is existing"
+      ansible.builtin.assert:
+        that:
+          - run_id is defined
+          - (run_id | string | length) > 0
+        fail_msg: "run_id is required."
+
+    - name: "S2P1 | Read stage1_handoff.json"
+      ansible.builtin.set_fact:
+        stage1_handoff: "{{ lookup('file', stage1_handoff_path) | from_json }}"
+
+    - name: "S2P1 | Add READY devices to dynamic group ready_reload (ignore missing inventory hosts)"
+      ansible.builtin.add_host:
+        name: "{{ item.inventory_hostname }}"
+        groups: "ready_reload"
+        ansible_host: "{{ item.host | default(omit) }}"
+      loop: "{{ stage1_handoff.ready_for_reload | default([]) }}"
+      when: item.inventory_hostname in (groups['ios'] | default([]))
+
+
+- name: "Stage 2 | Play 2 | PRE(throttle=5) + RELOAD(throttle=1) + POST(throttle=5)"
+  hosts: ready_reload
+  gather_facts: false
+  vars_files:
+    - ../inventory/group_vars/vault.yml
+  vars:
+    expected_filename: "{{ ios_image_filename }}"
+    stage2_run_dir: "{{ artifacts_root }}/{{ run_id }}/stage2"
+  roles:
+    - ios_upgrade_stage2
+
+
+- name: "Stage 2 | Play 3 | Write stage2_summary.json (single file)"
+  hosts: localhost
+  gather_facts: false
+  vars:
+    stage2_run_dir: "{{ artifacts_root }}/{{ run_id }}/stage2"
+    stage2_summary_path: "{{ stage2_run_dir }}/stage2_summary.json"
+
+  tasks:
+    - name: "S2P3 | Ensure stage2 directory exists"
+      ansible.builtin.file:
+        path: "{{ stage2_run_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: "S2P3 | Build device_state from hostvars"
+      vars:
+        _st:
+          status: "{{ (hostvars[item].stage2_status | default(false)) | bool }}"
+          reason: "{{ hostvars[item].stage2_reason | default('') }}"
+          pre_system_image: "{{ hostvars[item].stage2_pre_system_image | default('') }}"
+          post_system_image: "{{ hostvars[item].stage2_post_system_image | default('') }}"
+      ansible.builtin.set_fact:
+        device_state: "{{ device_state | default({}) | combine({ item: _st }) }}"
+      loop: "{{ groups['ready_reload'] | default([]) }}"
+
+    - name: "S2P3 | Write stage2_summary.json (ONLY device_state)"
+      ansible.builtin.copy:
+        dest: "{{ stage2_summary_path }}"
+        content: "{{ device_state | to_nice_json }}\n"
+        mode: "0644"
