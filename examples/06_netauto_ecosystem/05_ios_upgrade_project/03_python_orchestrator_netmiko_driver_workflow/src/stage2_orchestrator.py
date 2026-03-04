@@ -93,6 +93,10 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver) 
             handoff["devices"].append(res)
             if res.get("stage2_status"):
                 reload_queue.append(res)
+    
+    if precheck_no_reload:
+        write_json(str(ctx.stage2_results_path), handoff)
+        return str(ctx.stage2_results_path)
 
     # =========================
     # Phase B: reload (serial)

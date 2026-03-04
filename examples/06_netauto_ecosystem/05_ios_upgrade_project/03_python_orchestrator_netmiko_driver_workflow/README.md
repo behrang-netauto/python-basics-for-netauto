@@ -18,6 +18,11 @@ worker.py  -> writes backups: `artifacts/<run_id>/stage1/<device>.cfg`
 orchestrator -> writes handoff:
 `artifacts/<run_id>/stage1/stage1_handoff.json` with:
 `{run_id, image, devices:[DeviceState,...]}`
+   - check the Outout: 
+      # cat artifacts/<RUN_ID>/stage1/stage1_handoff.json | head -50
+      # jq '.devices[0] | {inventory_hostname,host,port,device_type,status}' artifacts/<RUN_ID>/stage1/stage1_handoff.json
+*** Dry-run import (import/syntax check):
+   - (.venv) python -c "from src.stage1_orchestrator import stage1; print('OK')"
 
 ## Quick start
 ```bash
@@ -86,7 +91,7 @@ Output:
    - check the Outout: 
       # cat artifacts/<RUN_ID>/stage2/stage2_results.json | head -80
       # jq '.devices[] | {inventory_hostname,stage2_status,stage2_reason,stage2_pre_system_image,stage2_post_system_image}' artifacts/<RUN_ID>/stage2/stage2_results.json
-*** Dry-run import:
+*** Dry-run import (import/syntax check):
    - (.venv) python -c "from src.stage2_orchestrator import stage2; print('OK')"
 
 ### Run Stage2
@@ -95,6 +100,9 @@ python run_stage2.py \
   --handoff artifacts/<run_id>/stage1/stage1_handoff.json \
   --config config.yml \
   --vault vault.yml
+
+- Precheck-only mode (no reload):
+  `python run_stage2.py ... --precheck-no-reload`
 
 
 ## Diagram (Stage1 + Stage2)
