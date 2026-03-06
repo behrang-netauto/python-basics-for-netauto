@@ -1,0 +1,153 @@
+
+---
+# -----------------------------
+# Init per-host state
+# -----------------------------
+- name: "S2 | Init per-host state"
+  ansible.builtin.set_fact:
+    stage2_status: true
+    stage2_reason: ""
+    stage2_pre_system_image: ""
+    stage2_post_system_image: ""
+
+# -----------------------------
+# PRE (throttle=5)
+# -----------------------------
+- name: "S2 | PRE | show version (capture)"
+  cisco.ios.ios_command:
+    commands:
+      - "show version"
+  register: s2_pre_show
+  throttle: 5
+  failed_when: false
+  when: stage2_status | bool
+
+- name: "S2 | PRE | mark fail if show version failed"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "PRE failed: show version command failed (connection/auth/timeout)"
+  when:
+    - stage2_status | bool
+    - s2_pre_show is failed
+
+#System image file is "bootflash:/cat8k_iosxe.17.09.04a.SPA.bin"
+- name: "S2 | PRE | parse system image"
+  ansible.builtin.set_fact:
+    stage2_pre_system_image: >-
+      {{
+        (s2_pre_show.stdout[0] | default(''))
+        | regex_search('System image file is\\s+\"?([^\"\\n]+)\"?', '\\1')
+        | default('', true)
+      }}
+  when: stage2_status | bool
+
+- name: "S2 | PRE | mark fail if no system image"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "PRE failed: could not parse system image from 'show version'"
+  when:
+    - stage2_status | bool
+    - stage2_pre_system_image | length == 0
+
+# -----------------------------
+# RELOAD (throttle=1) => serial behavior
+# -----------------------------
+- name: "S2 | RELOAD | trigger reload (best-effort)"
+  cisco.ios.ios_command:
+    commands:
+      - command: "reload"
+        prompt:
+          - "System configuration has been modified.*Save\\? \\[yes/no\\]"
+          - "Proceed with reload\\? \\[confirm\\]"
+        answer:
+          - "no"
+          - ""
+  register: s2_reload_cmd
+  throttle: 1
+  failed_when: false
+  when: stage2_status | bool
+
+- name: "S2 | RELOAD | mark fail if reload command failed (prompt/confirm mismatch)"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "RELOAD failed: reload command did not complete (prompt/confirm mismatch)"
+  when:
+    - stage2_status | bool
+    - s2_reload_cmd is failed
+    - ('Pattern' in (s2_reload_cmd.msg | default('')) or 'prompt' in (s2_reload_cmd.msg | default('')))
+
+- name: "S2 | RELOAD | small pause to let device go down"
+  ansible.builtin.pause:
+    seconds: 10
+  throttle: 1
+  when: stage2_status | bool
+
+- name: "S2 | RELOAD | wait for SSH to come back"
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host | default(inventory_hostname) }}"
+    port: "{{ ssh_port | default(22) }}"
+    state: started
+    timeout: "{{ reconnect_timeout | default(900) }}"
+    delay: 20
+  delegate_to: localhost
+  throttle: 1
+  register: s2_wait
+  failed_when: false
+  when: stage2_status | bool
+
+- name: "S2 | RELOAD | mark fail if device did not come back"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "RELOAD failed: device did not reconnect after reload"
+  when:
+    - stage2_status | bool
+    - s2_wait is failed
+
+# -----------------------------
+# POST (throttle=5)
+# -----------------------------
+- name: "S2 | POST | show version (capture)"
+  cisco.ios.ios_command:
+    commands:
+      - "show version"
+  register: s2_post_show
+  throttle: 5
+  failed_when: false
+  when: stage2_status | bool
+
+- name: "S2 | POST | mark fail if show version failed"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "POST failed: show version command failed (connection/auth/timeout)"
+  when:
+    - stage2_status | bool
+    - s2_post_show is failed
+
+- name: "S2 | POST | parse system image"
+  ansible.builtin.set_fact:
+    stage2_post_system_image: >-
+      {{
+        (s2_post_show.stdout[0] | default(''))
+        | regex_search('System image file is\\s+\"?([^\"\\n]+)\"?', '\\1')
+        | default('', true)
+      }}
+  when: stage2_status | bool
+
+- name: "S2 | POST | mark fail if no system image"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "POST failed: could not parse system image from 'show version'"
+  when:
+    - stage2_status | bool
+    - stage2_post_system_image | length == 0
+
+# -----------------------------
+# FINAL (only condition: expected_filename in post_system_image)
+# -----------------------------
+- name: "S2 | FINAL | expected_filename must be in post_system_image"
+  ansible.builtin.set_fact:
+    stage2_status: false
+    stage2_reason: "FINAL failed: expected image filename not found in post_system_image"
+  when:
+    - stage2_status | bool
+    - expected_filename not in (stage2_post_system_image | default(''))

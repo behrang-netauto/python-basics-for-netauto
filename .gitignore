@@ -13,11 +13,13 @@ venv/
 # Outputs/logs
 examples/**/output/
 examples/**/outputs/
-logs/
-snapshots/
+**/logs/
+**/snapshots/
 *.log
 *.csv
 *.xlsx
+**/artifacts/**
+!**/artifacts/.keep
 
 # Secrets
 .env

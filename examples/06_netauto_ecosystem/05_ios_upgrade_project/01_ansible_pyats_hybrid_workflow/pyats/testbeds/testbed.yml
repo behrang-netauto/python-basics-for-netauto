@@ -1,0 +1,107 @@
+
+testbed:
+  name: netauto-lab
+  credentials:
+    default:
+      username: test
+      password: test
+    enable:
+      password: test
+devices:
+  Router-1:
+    alias: Router-1
+    type: router
+    os: ios
+    platform: iol
+    connections:
+    #  default:
+    #    class: unicon.Unicon
+    #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.20
+        port: 23
+      cli:
+        protocol: ssh
+        ip: 192.168.56.20
+        port: 22
+
+  Router-2:
+    alias: Router-2
+    type: router
+    os: ios
+    platform: iol
+    connections:
+    #  default:
+    #    class: unicon.Unicon
+    #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.21
+        port: 23
+      cli:
+        protocol: ssh
+        ip: 192.168.56.21
+        port: 22
+
+  Router-3:
+    alias: Router-3
+    type: router
+    os: ios
+    platform: iol
+    connections:
+    #  default:
+    #    class: unicon.Unicon
+    #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.22
+        port: 23
+      cli:
+        protocol: ssh
+        ip: 192.168.56.22
+        port: 22
+
+  Router-4:
+    alias: Router-4
+    type: router
+    os: ios
+    platform: iol
+    connections:
+    #  default:
+    #    class: unicon.Unicon
+    #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.10
+        port: 32776
+      cli:
+        protocol: telnet
+        ip: 192.168.56.23
+        port: 23
+      ssh:
+        protocol: ssh
+        ip: 192.168.56.23
+        port: 22
+
+  Router-5:
+    alias: Router-5
+    type: router
+    os: ios
+    platform: iol
+    connections:
+    #  default:
+    #    class: unicon.Unicon
+    #    connections: [cli]
+      console:
+        protocol: telnet
+        ip: 192.168.56.10
+        port: 32777
+      cli:
+        protocol: telnet
+        ip: 192.168.56.24
+        port: 23
+      ssh:
+        protocol: ssh
+        ip: 192.168.56.24
+        port: 22

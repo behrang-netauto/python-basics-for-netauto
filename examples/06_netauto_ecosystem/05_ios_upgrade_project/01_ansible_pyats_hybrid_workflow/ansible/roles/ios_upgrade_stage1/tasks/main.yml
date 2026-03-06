@@ -1,0 +1,462 @@
+
+---
+# Role: ios_upgrade_stage1
+# Stage 1 tasks skeleton and run_id setup:
+# 1) Gate 1: Reachability/SSH check (Connectivity)
+# 1.1) Gate 1.1: Auth sanity check (show clock) + privilege check
+# 2) Gate 2: Server IOS MD5 validation (local file)
+# 3) Gate 3: Flash free space check (>= 1.5x image size)
+# 4) Backup running-config (artifact)
+# 5) Upload IOS image (SCP)
+# 6) Gate 4: Verify MD5 on device flash
+# 7) Boot prep (boot system + write mem + disable scp server)
+# 8) Write Stage1 artifacts (report/log pointers)
+
+---
+# -----------------------------
+# Stage 1 - per-host init
+# -----------------------------
+- name: "Stage1 | init per-host status"
+  ansible.builtin.set_fact:
+    stage1_status: "IN_PROGRESS"
+    stage1_failed_gate: ""
+    stage1_reason: ""
+    stage1_gates: {}
+
+# -----------------------------
+# Stage1 | init run_id + run directory (server-side, one per run)
+# -----------------------------
+- name: "Stage1 | Init run_id and create run directory"
+  run_once: true
+  delegate_to: localhost
+  block:
+    - name: "Artifacts | Set stage1_run_id (UTC timestamp)"
+      ansible.builtin.set_fact:
+        stage1_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+      delegate_facts: true
+
+    - name: "Artifacts | Create run directory"
+      ansible.builtin.file:
+        path: "{{ stage1_artifacts_root }}/{{ hostvars['localhost']['stage1_run_id'] }}"
+        state: directory
+        mode: "0755"
+
+# -----------------------------
+# GATE 1 - Connectivity (SSH)
+# -----------------------------
+- name: "GATE 1 | SSH reachable (TCP/22 from controller)"
+  block:
+    - name: "G1 | Check TCP/22 is open"
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host | default(inventory_hostname) }}"
+        port: 22
+        state: started
+        timeout: 8
+        connect_timeout: 2
+      delegate_to: localhost
+      register: g1_port22
+
+    - name: "G1 | Mark PASS"
+      ansible.builtin.set_fact:
+        stage1_gates: "{{ stage1_gates | combine({'g1_ssh_reachability': 'PASS'}) }}"
+
+  rescue:
+    - name: "G1 | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "g1_ssh_reachability"
+        stage1_reason: "TCP/22 not reachable from controller"
+        stage1_gates: "{{ stage1_gates | combine({'g1_ssh_reachability': 'FAIL'}) }}"
+
+    - name: "G1 | End processing for this host"
+      ansible.builtin.meta: end_host
+
+# -----------------------------
+# GATE 1.1 - Auth / CLI sanity
+# -----------------------------
+- name: "GATE 1.1 | Auth sanity check (show clock) + privilege check"
+  block:
+    - name: "G1.1 | Run 'show clock' (verifies login + CLI exec)"
+      cisco.ios.ios_command:
+        commands:
+          - show clock
+      register: g11_clock
+
+    - name: "G1.1 | Run 'show privilege' (verifies enable/privilege)"
+      cisco.ios.ios_command:
+        commands:
+          - show privilege
+      register: g11_priv
+
+    - name: "G1.1 | Parse privilege level from output"
+      ansible.builtin.set_fact:
+        stage1_priv_level: >-
+          {{
+            (g11_priv.stdout[0]
+              | regex_search('Current privilege level is (\\d+)', '\\1')
+              | default('0')
+            ) | int
+          }}
+
+    - name: "G1.1 | Require privilege level 15"
+      ansible.builtin.assert:
+        that:
+          - stage1_priv_level >= 15
+        fail_msg: "Privilege level is {{ stage1_priv_level }} (need >= 15 for Stage1 operations)"
+        success_msg: "Privilege level OK: {{ stage1_priv_level }}"
+
+    - name: "G1.1 | Mark PASS"
+      ansible.builtin.set_fact:
+        stage1_gates: "{{ stage1_gates | combine({'g1_1_auth_and_priv': 'PASS'}) }}"
+
+  rescue:
+    - name: "G1.1 | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "g1_1_auth_and_priv"
+        stage1_reason: "Auth/CLI sanity check failed (login/enable/privilege issue)"
+        stage1_gates: "{{ stage1_gates | combine({'g1_1_auth_and_priv': 'FAIL'}) }}"
+
+    - name: "G1.1 | End processing for this host"
+      ansible.builtin.meta: end_host
+
+# -----------------------------
+# GATE 2 - Server-side IOS image validation (MD5 + size)
+# -----------------------------
+- name: "GATE 2 | Validate IOS image on controller (MD5 + size)"
+  run_once: true
+  delegate_to: localhost
+  block:
+    - name: "G2 | Stat image file (compute MD5 + get size)"
+      ansible.builtin.stat:
+        path: "{{ ios_image_full_path }}"
+        checksum_algorithm: md5
+      register: g2_stat
+
+    - name: "G2 | Assert image exists and is a regular file"
+      ansible.builtin.assert:
+        that:
+          - g2_stat.stat.exists
+          - g2_stat.stat.isreg
+        fail_msg: "IOS image not found on controller: {{ ios_image_full_path }}"
+
+    - name: "G2 | Compute image size (MB) and normalize MD5"
+      ansible.builtin.set_fact:
+        ios_image_size_mb: "{{ (g2_stat.stat.size | float / 1024 / 1024) | round(2) }}"
+        ios_image_md5_computed: "{{ (g2_stat.stat.checksum | default('') | lower) }}"
+      delegate_facts: true
+
+    - name: "G2 | Require computed MD5 to match expected MD5"
+      ansible.builtin.assert:
+        that:
+          - ios_image_md5_computed == (ios_image_md5 | lower)
+        fail_msg: >-
+          Server MD5 mismatch for {{ ios_image_full_path }}.
+          expected={{ ios_image_md5 | lower }},
+          got={{ ios_image_md5_computed }}
+        success_msg: >-
+          Server MD5 OK ({{ ios_image_md5_computed }}), size={{ ios_image_size_mb }} MB
+
+  rescue:
+    - name: "G2 | Write GLOBAL stage1_handoff.json (all devices not ready)"
+      delegate_to: localhost
+      run_once: true
+      block:
+        - name: "G2 | Build global handoff object"
+          ansible.builtin.set_fact:
+            stage1_handoff_obj:
+              run_id: "{{ hostvars['localhost']['stage1_run_id'] }}"
+              image:
+                filename: "{{ ios_image_filename }}"
+                md5: "{{ ios_image_md5 | lower }}"
+                size_mb: null
+              ready_for_reload: []
+              not_ready:
+                - inventory_hostname: "all"
+                  host: "all"
+                  failed_gate: "g2_server_md5"
+                  reason: "invalid image"
+          delegate_facts: true
+
+        - name: "G2 | Write stage1_handoff.json"
+          ansible.builtin.copy:
+            dest: "{{ stage1_artifacts_root }}/{{ hostvars['localhost']['stage1_run_id'] }}/stage1_handoff.json"
+            content: "{{ stage1_handoff_obj | to_nice_json }}\n"
+            mode: "0644"
+
+    - name: "G2 | Hard fail (abort Stage1 for all devices)"
+      ansible.builtin.fail:
+        msg: "GATE 2 failed. Aborting Stage1 run because the source IOS image is not valid."
+
+- name: "G2 | Mark PASS in per-host gates and import image_size_mb"
+  ansible.builtin.set_fact:
+    stage1_gates: "{{ stage1_gates | combine({'g2_server_md5': 'PASS'}) }}"
+    ios_image_size_mb: "{{ hostvars['localhost']['ios_image_size_mb'] }}"
+
+# -----------------------------
+# GATE 3 - Flash free space check
+# -----------------------------
+- name: "GATE 3 | Check flash free space (dir bootflash:)"
+  block:
+    - name: "G3 | Run 'dir bootflash:'"
+      cisco.ios.ios_command:
+        commands:
+          - dir bootflash:
+      register: g3_dir
+
+    - name: "G3 | Parse 'bytes free' from dir output"
+      ansible.builtin.set_fact:
+        flash_free_bytes: >-
+          {{
+            (
+              g3_dir.stdout[0]
+              | regex_search('(\\d+)\\s+bytes\\s+free', '\\1')
+              | default('0')
+            ) | int
+          }}
+
+    - name: "G3 | Compute free space (MB) and required space (MB)"
+      ansible.builtin.set_fact:
+        flash_free_mb: "{{ (flash_free_bytes | float / 1024 / 1024) | round(2) }}"
+        flash_required_mb: "{{ (ios_image_size_mb | float * flash_multiplier | float) | round(2) }}"
+
+    - name: "G3 | Assert flash has enough free space"
+      ansible.builtin.assert:
+        that:
+          - flash_free_bytes > 0
+          - flash_free_mb >= flash_required_mb
+        fail_msg: >-
+          Insufficient flash space.
+          free={{ flash_free_mb }} MB, required={{ flash_required_mb }} MB
+        success_msg: >-
+          Flash space OK.
+
+    - name: "G3 | Mark PASS"
+      ansible.builtin.set_fact:
+        stage1_gates: "{{ stage1_gates | combine({'g3_flash_space': 'PASS'}) }}"
+
+  rescue:
+    - name: "G3 | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "g3_flash_space"
+        stage1_reason: >-
+          Flash space check failed.
+          free={{ (flash_free_mb | default('n/a')) }} MB,
+          required={{ (flash_required_mb | default('n/a')) }} MB.
+        stage1_gates: "{{ stage1_gates | combine({'g3_flash_space': 'FAIL'}) }}"
+
+    - name: "G3 | End processing for this host"
+      ansible.builtin.meta: end_host
+
+# -----------------------------
+# Stage1 - per-host artifacts directory
+# -----------------------------
+- name: "Stage1 | Ensure per-host artifacts directory exists (controller)"
+  delegate_to: localhost
+  ansible.builtin.file:
+    path: "{{ stage1_artifacts_root }}/{{ hostvars['localhost']['stage1_run_id'] }}/{{ inventory_hostname }}"
+    state: directory
+    mode: "0755"
+
+# -----------------------------
+# Stage1 - Backup running-config
+# -----------------------------
+- name: "Stage1 | Backup running-config to server"
+  block:
+    - name: "Backup | Collect running-config from device"
+      cisco.ios.ios_command:
+        commands:
+          - show running-config
+      register: bkp_run
+
+    - name: "Backup | Write running-config to file (server)"
+      delegate_to: localhost
+      ansible.builtin.copy:
+        dest: "{{ stage1_artifacts_root }}/{{ hostvars['localhost']['stage1_run_id'] }}/{{ inventory_hostname }}/running-config_pre.txt"
+        content: "{{ bkp_run.stdout[0] }}\n"
+        mode: "0644"
+
+    - name: "Backup | Mark PASS"
+      ansible.builtin.set_fact:
+        stage1_gates: "{{ stage1_gates | combine({'s_backup_running_config': 'PASS'}) }}"
+
+  rescue:
+    - name: "Backup | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "s_backup_running_config"
+        stage1_reason: "Failed to capture/write running-config pre-change"
+        stage1_gates: "{{ stage1_gates | combine({'s_backup_running_config': 'FAIL'}) }}"
+
+    - name: "Backup | End processing for this host"
+      ansible.builtin.meta: end_host
+
+# -----------------------------
+# Stage1 - Upload image via SCP (enable before, disable after)
+# -----------------------------
+- name: "Stage1 | Upload IOS image via SCP (temporary SCP enable)"
+  block:
+    - name: "Upload | Detect if 'ip scp server enable' is already configured"
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | include ^ip scp server enable
+      register: scp_cfg_line
+
+    - name: "Upload | Set SCP enable/disable decision facts"
+      ansible.builtin.set_fact:
+        scp_enabled_before: "{{ 'ip scp server enable' in (scp_cfg_line.stdout[0] | default('')) }}"
+        scp_enable_by_us: "{{ (not ('ip scp server enable' in (scp_cfg_line.stdout[0] | default('')))) and scp_enable_before_upload }}"
+
+    - name: "Upload | Enable SCP server (only if needed and policy says so)"
+      cisco.ios.ios_config:
+        lines:
+          - ip scp server enable
+      when: scp_enable_by_us | bool
+
+    - name: "Upload | Copy image to device (SCP)"
+      ansible.netcommon.net_put:
+        src: "{{ ios_image_full_path }}"
+        dest: "{{ remote_image_dest }}"
+        protocol: scp
+        timeout: "{{ upload_timeout_sec | int }}"
+      register: scp_put
+
+    - name: "Upload | Validate file appears on bootflash (dir bootflash:/<file>)"
+      cisco.ios.ios_command:
+        commands:
+          - "dir bootflash:/{{ ios_image_filename }}"
+      register: dir_after_copy
+
+    - name: "Upload | Disable SCP server (only if we enabled it)"
+      cisco.ios.ios_config:
+        lines:
+          - no ip scp server enable
+      when: (scp_disable_after_upload | bool) and (scp_enable_by_us | bool)
+
+    - name: "Upload | Mark PASS"
+      ansible.builtin.set_fact:
+        stage1_gates: "{{ stage1_gates | combine({'s_upload_scp': 'PASS'}) }}"
+
+  rescue:
+    # cleanup: if we enabled scp, try to disable even on failure
+    - name: "Upload | Cleanup: disable SCP server if we enabled it"
+      cisco.ios.ios_config:
+        lines:
+          - no ip scp server enable
+      when: (scp_disable_after_upload | bool) and (scp_enable_by_us | default(false) | bool)
+      ignore_errors: true
+
+    - name: "Upload | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "s_upload_scp"
+        stage1_reason: "SCP upload failed or file not visible on bootflash after copy"
+        stage1_gates: "{{ stage1_gates | combine({'s_upload_scp': 'FAIL'}) }}"
+
+    - name: "Upload | End processing for this host"
+      ansible.builtin.meta: end_host
+
+# -----------------------------
+# GATE 4 - Verify MD5 on device flash (bootflash)
+# -----------------------------
+- name: "GATE 4 | Verify MD5 of image on device flash"
+  block:
+    - name: "G4 | Run device-side MD5 verify"
+      cisco.ios.ios_command:
+        commands:
+          - "verify /md5 {{ remote_image_dest }}"
+      vars:
+        ansible_command_timeout: "{{ verify_timeout_sec | int }}"
+      register: g4_verify
+
+    - name: "G4 | Parse MD5 from verify output"
+      ansible.builtin.set_fact:
+        ios_image_md5_device: >-
+          {{
+            (
+              g4_verify.stdout[0]
+              | regex_search('=\\s*([0-9a-fA-F]{32})', '\\1')
+              | default('')
+            ) | lower
+          }}
+
+    - name: "G4 | Assert device MD5 matches expected MD5"
+      ansible.builtin.assert:
+        that:
+          - ios_image_md5_device != ""
+          - ios_image_md5_device == (ios_image_md5 | lower)
+        fail_msg: >-
+          Device MD5 mismatch for {{ remote_image_dest }}.
+        success_msg: >-
+          Device MD5 OK for {{ remote_image_dest }} ({{ ios_image_md5_device }})
+
+    - name: "G4 | Mark PASS"
+      ansible.builtin.set_fact:
+        stage1_gates: "{{ stage1_gates | combine({'g4_device_flash_md5': 'PASS'}) }}"
+
+  rescue:
+    - name: "G4 | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "g4_device_flash_md5"
+        stage1_reason: >-
+          Device MD5 verify failed for {{ remote_image_dest }}.
+          expected={{ ios_image_md5 | lower }},
+          got={{ (ios_image_md5_device | default('')) }}.
+        stage1_gates: "{{ stage1_gates | combine({'g4_device_flash_md5': 'FAIL'}) }}"
+
+    - name: "G4 | End processing for this host"
+      ansible.builtin.meta: end_host
+
+# -----------------------------
+# Stage1 - Boot preparation (boot system + write mem)
+# -----------------------------
+- name: "Stage1 | Boot prep (set boot system + write memory)"
+  block:
+    - name: "BootPrep | Clear existing boot system statements"
+      cisco.ios.ios_config:
+        lines:
+          - no boot system
+
+    - name: "BootPrep | Set new boot system to staged image"
+      cisco.ios.ios_config:
+        lines:
+          - "boot system {{ remote_image_dest }}"
+
+    - name: "BootPrep | Save configuration (write memory)"
+      cisco.ios.ios_command:
+        commands:
+          - write memory
+      register: wrmem_out
+
+    - name: "BootPrep | Verify boot variable"
+      cisco.ios.ios_command:
+        commands:
+          - show boot
+      register: show_boot_out
+
+    - name: "BootPrep | Assert boot variable contains the target image"
+      ansible.builtin.assert:
+        that:
+          - remote_image_dest in (show_boot_out.stdout[0] | default(''))
+        fail_msg: >-
+          Boot variable does not contain expected image.
+          expected to find={{ remote_image_dest }}
+        success_msg: "Boot variable OK (contains {{ remote_image_dest }})"
+
+    - name: "BootPrep | Mark PASS and set host status READY"
+      ansible.builtin.set_fact:
+        stage1_status: "READY_FOR_RELOAD"
+        stage1_gates: "{{ stage1_gates | combine({'s_boot_prep': 'PASS'}) }}"
+
+  rescue:
+    - name: "BootPrep | Mark FAIL (stop host)"
+      ansible.builtin.set_fact:
+        stage1_status: "FAILED"
+        stage1_failed_gate: "s_boot_prep"
+        stage1_reason: "Boot preparation failed (bootvar/write mem/show boot validation)"
+        stage1_gates: "{{ stage1_gates | combine({'s_boot_prep': 'FAIL'}) }}"
+
+    - name: "BootPrep | End processing for this host"
+      ansible.builtin.meta: end_host
