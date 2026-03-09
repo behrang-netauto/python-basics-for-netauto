@@ -31,8 +31,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
-# create your real vault.yml (ignored by git)
-cp vault.example.yml vault.yml
 
 # run stage1
 RUN_ID=$(date -u +%Y%m%dT%H%M%SZ)

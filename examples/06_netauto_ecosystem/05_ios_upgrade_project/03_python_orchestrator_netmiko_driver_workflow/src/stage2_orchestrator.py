@@ -40,7 +40,7 @@ def load_stage1_handoff(path: str) -> Dict[str, Any]:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver) -> str:
+def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, precheck_no_reload: bool = False) -> str:
     # ---- load stage1 handoff ----
     stage1_handoff = load_stage1_handoff(stage1_handoff_path)
     """{

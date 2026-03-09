@@ -18,4 +18,4 @@ behavior:
   scp_enable_before_upload: true
   scp_disable_after_upload: true
   reload_timeout: 900
-  behavior.probe_interval: 10
+  probe_interval: 10
