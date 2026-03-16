@@ -18,6 +18,8 @@ class RunContext:
     image: Dict[str, Any]
     device_fs: Dict[str, Any]
     behavior: Dict[str, Any]
+    cli: Dict[str, Any]
+    transfer: Dict[str, Any]
 
 
 def build_ctx(run_id: str, config_path: str) -> RunContext:
@@ -42,6 +44,26 @@ def build_ctx(run_id: str, config_path: str) -> RunContext:
     device_fs = dict(config.get("device_fs", {}))
     behavior = dict(config.get("behavior", {}))
 
+    cli = dict(config.get("cli", {}))
+    transfer = dict(config.get("transfer", {}))
+
+    backend = str(cli.get("backend", "")).strip().lower()
+    method = str(transfer.get("method", "")).strip().lower()
+
+    if backend not in {"netmiko", "scrapli"}:
+      raise ValueError("config.yml: cli.backend must be 'netmiko' or 'scrapli'")
+
+    if method not in {"scp", "copy_command"}:
+      raise ValueError("config.yml: transfer.method must be 'scp' or 'copy_command'")
+
+    if method == "copy_command":
+        copy = dict(transfer.get("copy", {}))
+        if not copy.get("server_ip"):
+            raise ValueError("config.yml: transfer.copy.server_ip is required for copy_command")
+        copy.setdefault("server_port", 8000)
+        copy.setdefault("protocol", "http")
+        transfer["copy"] = copy
+
     # note: remote_path must be provided by user in config.yml
     if not image.get("remote_path"):
         raise ValueError("config.yml: image.remote_path is required (e.g. bootflash:/<filename>)")
@@ -56,6 +78,8 @@ def build_ctx(run_id: str, config_path: str) -> RunContext:
         image=image,
         device_fs=device_fs,
         behavior=behavior,
+        cli=cli,
+        transfer=transfer,
     )
 """
 {
@@ -87,5 +111,17 @@ def build_ctx(run_id: str, config_path: str) -> RunContext:
     "scp_enable_before_upload": true,
     "scp_disable_after_upload": true
   }
+
+  "cli": {
+    "backend": "netmiko"  # or "scrapli"
+  },
+
+  "transfer": {
+    "method": "scp"  # or "copy_command"
+    "copy": {
+      "server_ip": "<IP address for copy command file server>",
+      "server_port": 8000,
+      "protocol": "http"
+    }
 }
 """

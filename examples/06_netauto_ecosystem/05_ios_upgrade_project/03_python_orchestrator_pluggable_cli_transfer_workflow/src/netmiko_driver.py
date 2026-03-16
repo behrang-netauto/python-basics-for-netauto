@@ -4,22 +4,49 @@ import re
 from typing import Any, Dict, List
 
 from netmiko import ConnectHandler
-from netmiko import file_transfer as nm_file_transfer
 
-
+"""
+connect / send_command / send_config / get_privilege_level / get_free_space_bytes / 
+get_running_config / is_scp_enabled / set_scp_enabled / verify_md5 / boot_prep / reload
+"""
 class NetmikoDriver:
-    def connect(self, device: Dict[str, Any], creds: Dict[str, Any], timeout: int):
-        params = {
-            "device_type": device["device_type"],
+
+    _NETMIKO_OS_MAP = {
+        "iosxe": "cisco_xe",
+        "ios": "cisco_ios",
+        "nxos": "cisco_nxos",
+        "iosxr": "cisco_xr",
+    }
+    
+    @staticmethod
+    def _to_netmiko_device_type(device: Dict[str, Any]) -> str:
+        os_name = str(device.get("os", "")).strip().lower()
+        platform = str(device.get("platform", "")).strip().lower()
+
+        if os_name in NetmikoDriver._NETMIKO_OS_MAP:
+            return NetmikoDriver._NETMIKO_OS_MAP[os_name]
+
+        raise ValueError(
+            f"Cannot map to netmiko device_type from os={os_name!r}, platform={platform!r}"
+        )
+    
+    @staticmethod
+    def _build_connect_params(device: Dict[str, Any], creds: Dict[str, Any], timeout: int) -> Dict[str, Any]:
+        return {
+            "device_type": NetmikoDriver._to_netmiko_device_type(device),
             "host": device["host"],
-            "port": device.get("port", 22),
+            "port": int(device.get("port", 22)),
             "username": creds["username"],
             "password": creds["password"],
+            "secret": creds.get("secret", ""),
             "timeout": timeout,
             "conn_timeout": timeout,
             "banner_timeout": timeout,
             "auth_timeout": timeout,
         }
+
+    def connect(self, device: Dict[str, Any], creds: Dict[str, Any], timeout: int):
+        params = NetmikoDriver._build_connect_params(device, creds, timeout)
         handle = ConnectHandler(**params)
         # If enable secret is provided, try enable mode
         secret = creds.get("secret")
@@ -65,16 +92,6 @@ class NetmikoDriver:
     def set_scp_enabled(self, handle, enable: bool, timeout: int) -> None:
         cmd = "ip scp server enable" if enable else "no ip scp server enable"
         self.send_config(handle, [cmd], timeout=timeout)
-
-    def file_transfer(self, handle, local_full_path: str, remote_dir: str, filename: str) -> None:
-        res = nm_file_transfer(
-            handle,
-            source_file=local_full_path,
-            dest_file=filename,
-            file_system=remote_dir,
-            direction="put",
-            overwrite_file=True,
-        )
 
     def verify_md5(self, handle, remote_path: str, timeout: int) -> str:
         out = self.send_command(handle, f"verify /md5 {remote_path}", timeout=timeout)

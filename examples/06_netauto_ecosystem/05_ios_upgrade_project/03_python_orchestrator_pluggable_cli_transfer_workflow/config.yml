@@ -19,3 +19,17 @@ behavior:
   scp_disable_after_upload: true
   reload_timeout: 900
   probe_interval: 10
+
+cli:
+  backend: "netmiko"        # netmiko | scrapli
+
+transfer:
+  method: "scp"             # scp | copy_command
+  
+#for copy_command method, the server is my local machine running a simple HTTP server to serve the image file; 
+#the devices will pull the image from this server using "copy http://
+  copy:
+    server_ip: "192.168.2.31"
+    server_port: 8000
+    protocol: "http"
+  

@@ -11,7 +11,8 @@ def _mk_result(device: Dict[str, Any]) -> Dict[str, Any]:
         "inventory_hostname": device["inventory_hostname"],
         "host": device["host"],
         "port": device.get("port", 22),
-        "device_type": device.get("device_type"),
+        "os": device.get("os"),
+        "platform": device.get("platform"),
 
         "stage2_status": True,
         "stage2_reason": "",
@@ -33,11 +34,12 @@ def _device_from_result(result: Dict[str, Any]) -> Dict[str, Any]:
         "inventory_hostname": result["inventory_hostname"],
         "host": result["host"],
         "port": result.get("port", 22),
-        "device_type": result.get("device_type"),
+        "os": result.get("os"),
+        "platform": result.get("platform"),
     }
 
 
-def stage2_device_precheck_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], driver) -> Dict[str, Any]:
+def stage2_device_precheck_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], cli) -> Dict[str, Any]:
     """
     Step: precheck_show_version
     Connect + show version + parse system image.
@@ -48,8 +50,8 @@ def stage2_device_precheck_worker(ctx, device: Dict[str, Any], creds: Dict[str, 
     try:
         try:
             dev = _device_from_result(result)
-            handle = driver.connect(device=dev, creds=creds, timeout=ctx.behavior["connect_timeout"])
-            sysimg = driver.get_system_image(handle, timeout=ctx.behavior["cmd_timeout"])
+            handle = cli.connect(device=dev, creds=creds, timeout=ctx.behavior["connect_timeout"])
+            sysimg = cli.get_system_image(handle, timeout=ctx.behavior["cmd_timeout"])
             result["stage2_pre_system_image"] = sysimg
             return result
         except Exception as e:
@@ -57,12 +59,12 @@ def stage2_device_precheck_worker(ctx, device: Dict[str, Any], creds: Dict[str, 
     finally:
         if handle is not None:
             try:
-                driver.disconnect(handle)
+                cli.disconnect(handle)
             except Exception:
                 pass
 
 
-def stage2_reload_one(ctx, result: Dict[str, Any], creds: Dict[str, Any], driver) -> Dict[str, Any]:
+def stage2_reload_one(ctx, result: Dict[str, Any], creds: Dict[str, Any], cli) -> Dict[str, Any]:
     """
     Step: reload (serial)
     Updates Stage2Result in-place; and returns it.
@@ -74,8 +76,8 @@ def stage2_reload_one(ctx, result: Dict[str, Any], creds: Dict[str, Any], driver
     try:
         try:
             dev = _device_from_result(result)
-            handle = driver.connect(device=dev, creds=creds, timeout=ctx.behavior["connect_timeout"])
-            driver.reload(handle, timeout=ctx.behavior["cmd_timeout"])
+            handle = cli.connect(device=dev, creds=creds, timeout=ctx.behavior["connect_timeout"])
+            cli.reload(handle, timeout=ctx.behavior["cmd_timeout"])
             return result
         except Exception as e:
             return _fail(result, "reload", str(e))
@@ -83,7 +85,7 @@ def stage2_reload_one(ctx, result: Dict[str, Any], creds: Dict[str, Any], driver
         # best-effort disconnect (session may drop after reload)
         if handle is not None:
             try:
-                driver.disconnect(handle)
+                cli.disconnect(handle)
             except Exception:
                 pass
 
@@ -91,33 +93,33 @@ def stage2_reload_one(ctx, result: Dict[str, Any], creds: Dict[str, Any], driver
 def wait_for_ssh_connect(
     result: Dict[str, Any],
     creds: Dict[str, Any],
-    driver,
+    cli,
     timeout_sec: int,
     probe_interval_sec: int = 10
 ) -> bool:
     """
     Step: wait_for_ssh_connect
-    SSH is considered "back" when a real Netmiko connect succeeds.
+    SSH is considered "back" when a real connection succeeds.
     """
     dev = _device_from_result(result)
     deadline = time.time() + timeout_sec
     while time.time() < deadline:
         handle = None
         try:
-            handle = driver.connect(device=dev, creds=creds, timeout=probe_interval_sec)
+            handle = cli.connect(device=dev, creds=creds, timeout=probe_interval_sec)
             return True
         except Exception:
             time.sleep(probe_interval_sec)
         finally:
             if handle is not None:
                 try:
-                    driver.disconnect(handle)
+                    cli.disconnect(handle)
                 except Exception:
                     pass
     return False
 
 
-def stage2_device_postcheck_worker(ctx, result: Dict[str, Any], creds: Dict[str, Any], driver) -> Dict[str, Any]:
+def stage2_device_postcheck_worker(ctx, result: Dict[str, Any], creds: Dict[str, Any], cli) -> Dict[str, Any]:
     """
     Steps: postcheck_show_version + compare
     Condition: post system image must CONTAIN ctx.image["filename"]
@@ -129,15 +131,15 @@ def stage2_device_postcheck_worker(ctx, result: Dict[str, Any], creds: Dict[str,
     try:
         try:
             dev = _device_from_result(result)
-            handle = driver.connect(device=dev, creds=creds, timeout=ctx.behavior["connect_timeout"])
-            sysimg = driver.get_system_image(handle, timeout=ctx.behavior["cmd_timeout"])
+            handle = cli.connect(device=dev, creds=creds, timeout=ctx.behavior["connect_timeout"])
+            sysimg = cli.get_system_image(handle, timeout=ctx.behavior["cmd_timeout"])
             result["stage2_post_system_image"] = sysimg
         except Exception as e:
             return _fail(result, "postcheck_show_version", str(e))
     finally:
         if handle is not None:
             try:
-                driver.disconnect(handle)
+                cli.disconnect(handle)
             except Exception:
                 pass
 

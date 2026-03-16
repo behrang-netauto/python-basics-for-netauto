@@ -16,6 +16,7 @@ from .stage2_worker import (
     stage2_device_postcheck_worker,
 )
 
+from .runtime_factory import build_runtime
 
 def prepare_stage2_dirs(ctx) -> None:
     Path(ctx.stage2_dir).mkdir(parents=True, exist_ok=True)
@@ -40,7 +41,7 @@ def load_stage1_handoff(path: str) -> Dict[str, Any]:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, precheck_no_reload: bool = False) -> str:
+def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, precheck_no_reload: bool = False) -> str:
     # ---- load stage1 handoff ----
     stage1_handoff = load_stage1_handoff(stage1_handoff_path)
     """{
@@ -61,6 +62,9 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, 
     ctx = build_ctx(run_id=run_id, config_path=config_path)
     prepare_stage2_dirs(ctx)
 
+    # ---- runtime + cli backend ----
+    cli, _ = build_runtime(ctx)
+
     # ---- creds ----
     vault = load_yaml(vault_path)
     creds = extract_creds(vault)
@@ -69,10 +73,10 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, 
     devices_in = stage1_handoff.get("devices", [])
     targets = [d for d in devices_in if d.get("status") == "READY_FOR_RELOAD"]
 
-    # Ensure required netmiko fields exist in targets
+    # Ensure required fields exist in targets
     for d in targets:
-        if "port" not in d or "device_type" not in d:
-            raise ValueError("Stage1 handoff devices must include 'port' and 'device_type' for Stage2")
+        if "port" not in d or "os" not in d or "platform" not in d:
+            raise ValueError("Stage1 handoff devices must include 'port', 'os', and 'platform' for Stage2")
 
     # ---- stage2 output ----
     handoff = init_stage2_handoff(ctx)
@@ -84,7 +88,7 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, 
     # Phase A: precheck_show_version (parallel)
     # =========================
     def pre_worker(dev):
-        return stage2_device_precheck_worker(ctx=ctx, device=dev, creds=creds, driver=driver)
+        return stage2_device_precheck_worker(ctx=ctx, device=dev, creds=creds, cli=cli)
 
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = [ex.submit(pre_worker, dev) for dev in targets]
@@ -102,7 +106,7 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, 
     # Phase B: reload (serial)
     # =========================
     for res in reload_queue:
-        stage2_reload_one(ctx=ctx, result=res, creds=creds, driver=driver)
+        stage2_reload_one(ctx=ctx, result=res, creds=creds, cli=cli)
 
     # =========================
     # Phase C: wait_for_ssh_connect (parallel)
@@ -114,7 +118,7 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, 
 
     def wait_worker(res):
         #return tuple => (res, ok_bool) 
-        return (res, wait_for_ssh_connect(res, creds=creds, driver=driver, timeout_sec=reload_timeout, probe_interval_sec=probe_interval))
+        return (res, wait_for_ssh_connect(res, creds=creds, cli=cli, timeout_sec=reload_timeout, probe_interval_sec=probe_interval))
 
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = [ex.submit(wait_worker, r) for r in ok_for_post]
@@ -131,7 +135,7 @@ def stage2(stage1_handoff_path: str, config_path: str, vault_path: str, driver, 
     ok_for_post2 = [r for r in ok_for_post if r.get("stage2_status")]
 
     def post_worker(res):
-        return stage2_device_postcheck_worker(ctx=ctx, result=res, creds=creds, driver=driver)
+        return stage2_device_postcheck_worker(ctx=ctx, result=res, creds=creds, cli=cli)
 
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = [ex.submit(post_worker, r) for r in ok_for_post2]

@@ -17,16 +17,17 @@ FAILED_STEPS = {
 }
 
 
-def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], driver) -> Dict[str, Any]:
+def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], cli, xfer) -> Dict[str, Any]:
     state: Dict[str, Any] = {
         "inventory_hostname": device["inventory_hostname"],
         "host": device["host"],
         "port": device.get("port", 22),
-        "device_type": device.get("device_type"),
+        "os": device.get("os"),
+        "platform": device.get("platform"),
         "status": "READY_FOR_RELOAD",
         "warnings": [],
     }
-
+    method = str(ctx.transfer.get("method", "")).strip().lower()
     handle = None
     scp_initial = None
     enabled_by_us = False
@@ -34,8 +35,8 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
     try:
         # A) auth_sanity
         try:
-            handle = driver.connect(device=device, creds=creds, timeout=ctx.behavior["connect_timeout"])
-            priv = driver.get_privilege_level(handle, timeout=ctx.behavior["cmd_timeout"])
+            handle = cli.connect(device=device, creds=creds, timeout=ctx.behavior["connect_timeout"])
+            priv = cli.get_privilege_level(handle, timeout=ctx.behavior["cmd_timeout"])
             if priv < 15:
                 state["status"] = "NOT_READY"
                 state["failed_step"] = "auth_sanity"
@@ -49,7 +50,7 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
 
         # B) flash_space
         try:
-            free_bytes = driver.get_free_space_bytes(
+            free_bytes = cli.get_free_space_bytes(
                 handle, remote_fs=ctx.device_fs["remote_fs"], timeout=ctx.behavior["cmd_timeout"]
             )
             required = int(ctx.image["size_bytes"] * float(ctx.device_fs.get("space_factor", 1.0)))
@@ -66,7 +67,7 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
 
         # C) backup_running_config -> stage1_dir/<device>.cfg
         try:
-            running_cfg = driver.get_running_config(handle, timeout=ctx.behavior["cmd_timeout"])
+            running_cfg = cli.get_running_config(handle, timeout=ctx.behavior["cmd_timeout"])
             backup_path = f"{ctx.stage1_dir}/{device['inventory_hostname']}.cfg"
             write_text(backup_path, running_cfg)
         except Exception as e:
@@ -76,24 +77,25 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
             return state
 
         # D) enable_scp (conditional) + capture initial SCP state
-        try:
-            scp_initial = driver.is_scp_enabled(handle, timeout=ctx.behavior["cmd_timeout"])
-            if bool(ctx.behavior.get("scp_enable_before_upload", False)) and scp_initial is False:
-                driver.set_scp_enabled(handle, enable=True, timeout=ctx.behavior["cmd_timeout"])
-                enabled_by_us = True
-        except Exception as e:
-            state["status"] = "NOT_READY"
-            state["failed_step"] = "enable_scp"
-            state["reason"] = f"error by enable_scp: {e}"
-            return state
+        if method == "scp":
+            try:
+                scp_initial = cli.is_scp_enabled(handle, timeout=ctx.behavior["cmd_timeout"])
+                if bool(ctx.behavior.get("scp_enable_before_upload", False)) and scp_initial is False:
+                    cli.set_scp_enabled(handle, enable=True, timeout=ctx.behavior["cmd_timeout"])
+                    enabled_by_us = True
+            except Exception as e:
+                state["status"] = "NOT_READY"
+                state["failed_step"] = "enable_scp"
+                state["reason"] = f"error by enable_scp: {e}"
+                return state
 
         # E) upload_image
         try:
-            driver.file_transfer(
-                handle,
-                local_full_path=ctx.image["local_full_path"],
-                remote_dir=ctx.device_fs["remote_dir"],
-                filename=ctx.image["filename"],
+            xfer.upload(
+                handle=handle,
+                ctx=ctx,
+                device=device,
+                creds=creds,
             )
         except Exception as e:
             state["status"] = "NOT_READY"
@@ -103,7 +105,7 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
 
         # F) verify_md5_on_device
         try:
-            dev_md5 = driver.verify_md5(
+            dev_md5 = cli.verify_md5(
                 handle, 
                 remote_path=ctx.image["remote_path"], 
                 timeout=ctx.behavior["cmd_timeout"]
@@ -121,7 +123,7 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
 
         # G) boot_prep
         try:
-            driver.boot_prep(
+            cli.boot_prep(
                 handle, 
                 new_image_remote_path=ctx.image["remote_path"], 
                 timeout=ctx.behavior["cmd_timeout"]
@@ -133,17 +135,22 @@ def stage1_device_worker(ctx, device: Dict[str, Any], creds: Dict[str, Any], dri
             return state
 
         # H) disable_scp (conditional restore) - non-fatal if fails
-        if bool(ctx.behavior.get("scp_disable_after_upload", False)) and enabled_by_us and scp_initial is False:
+        if (
+            method == "scp"
+            and bool(ctx.behavior.get("scp_disable_after_upload", False)) 
+            and enabled_by_us 
+            and scp_initial is False
+        ):
             try:
-                driver.set_scp_enabled(handle, enable=False, timeout=ctx.behavior["cmd_timeout"])
-            except Exception:
-                state["warnings"].append("disable_scp_failed")
+                cli.set_scp_enabled(handle, enable=False, timeout=ctx.behavior["cmd_timeout"])
+            except Exception as e:
+                state["warnings"].append(f"disable_scp_failed: {e}")
 
         return state
 
     finally:
         if handle is not None:
             try:
-                driver.disconnect(handle)
+                cli.disconnect(handle)
             except Exception:
                 pass

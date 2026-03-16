@@ -9,7 +9,6 @@ devices:
     platform: cat8k
     connections:
       ssh: { ip: 192.168.56.20, port: 22 }
-    netmiko: { device_type: cisco_xe }
 
   R2:
     alias: R2
@@ -17,7 +16,6 @@ devices:
     platform: cat8k
     connections:
       ssh: { ip: 192.168.56.21, port: 22 }
-    netmiko: { device_type: cisco_xe }
 
   R3:
     alias: R3
@@ -25,7 +23,6 @@ devices:
     platform: cat8k
     connections:
       ssh: { ip: 192.168.56.22, port: 22 }
-    netmiko: { device_type: cisco_xe }
 
   R4:
     alias: R4
@@ -33,7 +30,6 @@ devices:
     platform: cat8k
     connections:
       ssh: { ip: 192.168.56.23, port: 22 }
-    netmiko: { device_type: cisco_xe }
 
   R5:
     alias: R5
@@ -41,4 +37,3 @@ devices:
     platform: cat8k
     connections:
       ssh: { ip: 192.168.56.24, port: 22 }
-    netmiko: { device_type: cisco_xe }

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 
-from src.netmiko_driver import NetmikoDriver
 from src.stage2_orchestrator import stage2
 
 
@@ -19,13 +18,10 @@ def main() -> int:
     )
     args = p.parse_args()
 
-    driver = NetmikoDriver()
-
     out_path = stage2(
         stage1_handoff_path=args.handoff,
         config_path=args.config,
         vault_path=args.vault,
-        driver=driver,
         precheck_no_reload=args.precheck_no_reload,
     )
     

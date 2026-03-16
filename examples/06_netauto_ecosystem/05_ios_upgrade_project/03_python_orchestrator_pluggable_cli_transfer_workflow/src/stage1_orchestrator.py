@@ -8,6 +8,7 @@ from .io_utils import load_yaml, md5_file, file_size_bytes, write_json
 from .inventory import normalize_devices_from_inventory
 from .vault import extract_creds
 from .worker import stage1_device_worker
+from .runtime_factory import build_runtime
 
 
 def global_validate_image(ctx: RunContext) -> None:
@@ -83,7 +84,7 @@ def run_stage1_parallel(
             handoff["devices"].append(device_state)
 
 
-def stage1(run_id: str, config_path: str, inventory_path: str, vault_path: str, driver) -> str:
+def stage1(run_id: str, config_path: str, inventory_path: str, vault_path: str) -> str:
     """
     1. build ctx
     2. prepare_artifacts_dirs
@@ -95,6 +96,8 @@ def stage1(run_id: str, config_path: str, inventory_path: str, vault_path: str, 
     8. run_stage1_parallel
     9. write_json(...)"""
     ctx = build_ctx(run_id=run_id, config_path=config_path)
+
+    cli, xfer = build_runtime(ctx)
 
     prepare_artifacts_dirs(ctx)
 
@@ -108,7 +111,7 @@ def stage1(run_id: str, config_path: str, inventory_path: str, vault_path: str, 
     handoff = init_handoff(ctx)
 
     def worker_fn(device):
-        return stage1_device_worker(ctx=ctx, device=device, creds=creds, driver=driver)
+        return stage1_device_worker(ctx=ctx, device=device, creds=creds, cli=cli, xfer=xfer)
 
     run_stage1_parallel(
         devices=devices,
