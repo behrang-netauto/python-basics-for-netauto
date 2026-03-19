@@ -1,0 +1,5 @@
+
+nornir>=3.4.1
+nornir-scrapli>=2023.7.30
+scrapli>=2024.0.0
+PyYAML>=6.0.1

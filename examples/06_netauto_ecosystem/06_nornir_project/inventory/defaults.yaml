@@ -1,0 +1,12 @@
+
+# Credentials are loaded from vault.yml at runtime (demo-only in this repo).
+# Keep defaults focused on connection metadata.
+
+port: 22
+
+connection_options:
+  scrapli:
+    platform: "cisco_iosxe"
+    extras:
+      auth_strict_key: false
+      

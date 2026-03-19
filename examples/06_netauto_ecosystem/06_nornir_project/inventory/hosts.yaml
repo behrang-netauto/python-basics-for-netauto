@@ -1,0 +1,12 @@
+
+R1:
+  hostname: "192.168.56.20"
+  groups: ["iosxe"]
+
+R2:
+  hostname: "192.168.56.21"
+  groups: ["iosxe"]
+
+R3:
+  hostname: "192.168.56.22"
+  groups: ["iosxe"]
