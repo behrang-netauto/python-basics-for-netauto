@@ -1,0 +1,8 @@
+- A single Site is used for the whole lab: LAB-PRIMARY.
+- A single Manufacturer is used: Cisco.
+- Platform represents the software/OS family: iosxe.
+- Device Role convention is router.
+- A single Device Type is used for the current lab family: Cisco Catalyst 8000V.
+- Management-only modeling is used in Phase 3.
+- The management interface naming convention is Mgmt0.
+- Device names must match the actual lab device names: R1, R2, R3, R4, R5.
