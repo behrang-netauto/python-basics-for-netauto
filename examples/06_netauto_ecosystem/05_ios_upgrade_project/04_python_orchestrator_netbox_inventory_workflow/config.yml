@@ -1,0 +1,43 @@
+
+artifacts_root: "artifacts"
+
+inventory:
+  source: "netbox"
+  site: "lab-primary"
+  status: "active"
+  default_port: 22
+
+netbox:
+  base_url: "https://192.168.56.6"
+  verify_ssl: false
+  timeout: 20
+
+image:
+  local_full_path: "/Volumes/EXTDISK/cat8k_iosxe.17.09.04a.SPA.bin"
+  filename: "cat8k_iosxe.17.09.04a.SPA.bin"
+  expected_md5: "0123456789abcdef0123456789abcdef"
+  remote_path: "bootflash:/cat8k_iosxe.17.09.04a.SPA.bin"
+
+device_fs:
+  remote_fs: "bootflash:"
+  remote_dir: "bootflash:/"
+  space_factor: 1.5
+
+behavior:
+  max_workers: 5
+  connect_timeout: 20
+  cmd_timeout: 60
+  scp_enable_before_upload: true
+  scp_disable_after_upload: true
+  reload_timeout: 900
+  probe_interval: 10
+
+cli:
+  backend: "netmiko"    # netmiko | scrapli
+
+transfer:
+  method: "scp"         # scp | copy_command
+  copy:
+    server_ip: "192.168.2.31"
+    server_port: 8000
+    protocol: "http"
