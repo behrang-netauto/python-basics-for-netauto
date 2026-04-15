@@ -34,7 +34,9 @@ examples/06_netauto_ecosystem/04_docker_monitoring/shared/state.json
 examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/latest
 examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/state
 examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/*.csv
-
+!examples/06_netauto_ecosystem/07_snmp_cpu_monitoring_pipeline/evidence_pack/
+!examples/06_netauto_ecosystem/07_snmp_cpu_monitoring_pipeline/evidence_pack/**/*.csv
+!examples/06_netauto_ecosystem/07_snmp_cpu_monitoring_pipeline/evidence_pack/**/*.log
 
 
 # python import profiling artifacts
