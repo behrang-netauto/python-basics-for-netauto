@@ -4,46 +4,43 @@
 - **Baseline project:** `07_snmp_cpu_monitoring_pipeline`
 - **Next-generation project:** `08_iosxe_telemetry_pipeline`
 
-This telemetry project is the next-generation, model-driven monitoring workflow that follows the earlier SNMP-based baseline monitoring workflow.
+This project is the next-generation, model-driven monitoring workflow that follows the earlier SNMP-based baseline monitoring workflow.
+
+---
 
 ## Current project status
 The project is organized into three phases:
 
 - **Phase 1 — Baseline telemetry pipeline** ✅ complete
 - **Phase 2 — Alerting** ✅ complete
-- **Phase 3 — Hardening (TLS)** ⏳ next
+- **Phase 3 — Hardening (TLS)** ✅ complete for the primary validation path
 
-This README reflects the successful completion of **Phase 1** and **Phase 2**.
+This README reflects the completion of the full project scope, with one documented lab-specific limitation:
 
----
-
-## Project goals by phase
-### Phase 1 goal
-Build and validate a working **IOS XE model-driven telemetry pipeline** with evidence-backed execution.
-
-Phase 1 scope:
-- bring up the collector stack
-- validate the receiver path from device to collector
-- validate **CPU periodic telemetry** end-to-end
-- validate **interface state telemetry** with **on-change** updates
-- collect execution evidence
-
-### Phase 2 goal
-Add and validate **alerting** on top of the working telemetry baseline.
-
-Phase 2 scope:
-- create Grafana-managed alert rules
-- validate a **CPU high** alert path
-- validate an **interface down** alert path
-- route notifications to **Mailpit** through Grafana email contact points
-- collect alerting evidence
+- **Cat9000v:** telemetry pipeline validated successfully with TLS
+- **CSR1000v:** baseline telemetry validated successfully; TLS receiver did not complete due to lack of an authoritative time source for PKI initialization, and this was 
+documented as a lab prerequisite issue rather than left unexplained
 
 ---
 
-## Architecture used in Phases 1 and 2
+## Project goal
+Build and validate an **IOS XE model-driven telemetry pipeline** with evidence-backed execution.
+
+The final scope includes:
+- collector stack bring-up
+- receiver path validation from device to collector
+- **CPU periodic telemetry** end-to-end
+- **interface state telemetry** with **on-change** updates
+- **Grafana alerting** with Mailpit email delivery
+- **TLS hardening** of the telemetry transport
+- collection of execution evidence for all phases
+
+---
+
+## Architecture
 **Mode:** configured dial-out subscription  
 **Transport:** gRPC  
-**Receiver protocol on device:** `grpc-tcp`  
+**Receiver protocol on device:** `grpc-tcp` in baseline, then `grpc-tls` in hardening  
 **Encoding:** `encode-kvgpb`  
 **Collector plugin:** `inputs.cisco_telemetry_mdt`
 
@@ -54,62 +51,95 @@ Phase 2 scope:
 - **Telegraf** = telemetry receiver / collector
 - **InfluxDB 2** = storage
 - **Grafana** = visualization and alerting
-- **Mailpit** = test SMTP sink for alert validation
+- **Mailpit** = test SMTP target for alert validation
 
-### Platforms used in Phases 1 and 2
+### Platform used
 - **Cat9000v**
 - **CSR1000v**
 - **Ubuntu collector host**
 
 ---
 
-## Phase 1 design decisions
+## Design decisions
+
 ### CPU stream
 - periodic telemetry
-- one-minute CPU path used for stable visualization on Cat9000v
-- used to prove the first end-to-end green path
-- CPU timing was later normalized across devices during lab validation so both platforms could be compared more easily
+- one-minute CPU path used for stable visualization
+- used to establish the first end-to-end green path
+- later reused for alerting and TLS re-validation
 
 ### Interface stream
 - on-change telemetry
-- interface subtree path was validated first with periodic updates
-- after XPath validation, the same telemetry target was moved to **on-change**
-- behavior was verified using `shutdown / no shutdown`
-- evidence was collected from InfluxDB query output rather than relying only on charts
+- interface subtree path was validated first
+- event behavior was verified with `shutdown / no shutdown`
+- evidence was collected from InfluxDB raw/query output rather than relying only on charts
 
 ### Receiver design
-- Named receiver on platforms that supported it:
+- **Cat9000v:** validated with a named receiver profile
   - `RCVR-TELEGRAF-GRPC`
-- Subscription-level receiver on platforms where global named receiver behavior differed
-- This was treated as a platform-behavior difference observed during lab execution, not as a pipeline failure
+- **CSR1000v:** validated with a subscription-level receiver configuration where platform behavior differed in lab use
+
+### TLS hardening approach
+- baseline telemetry was first validated over non-TLS transport
+- TLS was then enabled on the collector and on the device side
+- Cat9000v completed TLS validation successfully
+- CSR1000v entered a documented TLS limitation state tied to PKI time-source requirements
 
 ---
 
-## Phase 2 design decisions
-### Alert routing
-- Grafana-managed alert rules were used
-- alert notifications were sent through Grafana email integration
-- **Mailpit** was used as the SMTP sink for safe lab validation
+## Phase summary
 
-### CPU alert
-- a CPU threshold rule was created for Cat9000v using the periodic CPU stream
-- the alert path was validated end-to-end:
-  - Grafana rule evaluation
-  - alert firing state
-  - email delivery to Mailpit
+### Phase 1 — Baseline telemetry pipeline
+Validated:
+- collector stack bring-up
+- receiver path validation
+- CPU periodic telemetry end-to-end
+- interface on-change telemetry end-to-end
+- evidence collection
 
-### Interface alert
-- an interface-down alert rule was created using the interface telemetry stream
-- interface state changes were converted into an alertable condition inside the query logic
-- the alert path was validated end-to-end:
-  - interface event generation on device
-  - alert evaluation in Grafana
-  - email delivery to Mailpit
+Successful outputs:
+- Docker Compose stack operational
+- Telegraf listener active on expected receiver port
+- InfluxDB health endpoint reachable
+- Grafana datasource validated
+- device receivers connected
+- configured telemetry subscriptions valid
+- CPU telemetry visible in InfluxDB and Grafana
+- interface on-change updates visible in InfluxDB after interface state changes
 
-### Evidence principle
-Phase 2 used the same **evidence-backed execution** rule as Phase 1:
-- rule creation alone was not considered success
-- the phase was closed only after notification delivery was observed and captured
+### Phase 2 — Alerting
+Validated:
+- CPU alert rule in Grafana
+- interface down alert rule in Grafana
+- SMTP path to Mailpit
+- alert evidence collection
+
+Successful outputs:
+- Grafana contact point working
+- Mailpit email delivery verified
+- CPU alert fired and delivered
+- interface down alert fired and delivered
+- screenshots collected for rule configuration and delivered alerts
+
+### Phase 3 — Hardening (TLS)
+Validated:
+- local lab CA generation
+- server certificate for Telegraf collector
+- TLS-enabled telemetry receiver path
+- telemetry re-validation after enabling TLS
+
+Successful outputs:
+- Cat9000v telemetry validated successfully over `grpc-tls`
+- CPU periodic telemetry still visible after TLS enablement
+- interface on-change telemetry still visible after TLS enablement
+- TLS evidence collected for collector and device side
+
+Documented limitation:
+- CSR1000v TLS receiver remained in `Connecting` state
+- root cause identified through CLI and logs:
+  - **PKI could not initialize fully because the device had no authoritative time source**
+- baseline non-TLS telemetry on CSR1000v remained valid
+- the issue was documented in evidence rather than hidden
 
 ---
 
@@ -141,94 +171,44 @@ Phase 2 used the same **evidence-backed execution** rule as Phase 1:
 
 ---
 
-## What was validated in Phase 1
-### Collector side
-- Docker Compose stack came up successfully
-- Telegraf listener came up on the expected receiver port
-- InfluxDB health endpoint responded successfully
-- Grafana datasource was validated successfully
-
-### Device side
-- receiver configuration validated
-- configured telemetry subscriptions validated
-- device receiver state reached **Connected**
-
-### End-to-end telemetry
-- CPU periodic telemetry from IOS XE reached InfluxDB
-- CPU data was visualized successfully
-- interface on-change telemetry produced observable updates after interface state changes
-
----
-
-## What was validated in Phase 2
-### Grafana alerting path
-- a working email contact point was configured
-- notification routing was validated
-- Grafana-managed rules were created successfully
-
-### CPU alert validation
-- CPU alert rule was evaluated successfully
-- CPU alert entered the expected alert state under the lab scenario
-- Mailpit received the CPU alert notification
-
-### Interface alert validation
-- interface alert rule was evaluated successfully
-- interface state change triggered the expected alert path
-- Mailpit received the interface alert notification
-
-### Alert evidence
-- Grafana rule configuration and evaluation states were captured
-- Mailpit inbox and delivered alert messages were captured
-- alerting was validated against real telemetry, not mock data
-
----
-
 ## Evidence-backed execution
-Phases 1 and 2 were closed only after evidence was collected for both the collector side and the device side, and for the alerting path.
+The project was closed only after evidence was collected for:
+- collector health
+- device receiver and subscription state
+- telemetry data visibility
+- alert delivery
+- TLS re-validation
 
-### Evidence captured
-#### Collector logs
-- Compose service status
-- InfluxDB health output
-- Telegraf live and captured logs
-
-#### Device CLI evidence
-- CPU periodic subscription verification output
-- Interface on-change subscription verification output
-
-#### Screenshots from Phase 1
-- InfluxDB datasource and bucket validation
-- CPU periodic visibility in InfluxDB and Grafana
-- before/after evidence for interface on-change behavior
-
-#### Screenshots from Phase 2
-- Grafana contact point and notification path
-- CPU alert rule and firing behavior
-- interface alert rule and firing behavior
-- Mailpit inbox and delivered emails
-
-### Evidence directory used
+### Evidence directory
 ```text
 examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/
 ```
 
-Typical Phase 1 evidence includes:
-- `logs/collector/phase1_compose_ps.txt`
-- `logs/collector/phase1_influx_health.json`
-- `logs/collector/phase1_telegraf_cpu.log`
-- `logs/device_cli/IOS_XE_CPU_periodic_subscription.txt`
-- `logs/device_cli/IOS_XE_if_on_change_subscription.txt`
-- `screenshots/phase1/...`
+### Typical evidence captured
 
-Typical Phase 2 evidence includes:
-- Grafana alert rule screenshots
-- Grafana notification/contact point screenshots
-- Mailpit alert delivery screenshots
-- any exported or saved alerting logs kept under the same `evidence_pack/` structure
+#### Collector logs
+- Compose service status
+- InfluxDB health output
+- Telegraf live and captured logs
+- phase-specific alerting / TLS logs
+
+#### Device CLI evidence
+- CPU periodic subscription verification output
+- interface on-change subscription verification output
+- TLS receiver and subscription verification output
+- CSR1000v TLS limitation evidence with PKI / clock context
+
+#### Screenshots
+- InfluxDB datasource and bucket validation
+- CPU periodic visibility in InfluxDB and Grafana
+- before/after evidence for interface on-change behavior
+- Grafana alerting configuration and Mailpit deliveries
+- TLS validation screenshots
 
 ---
 
-## Runtime stack notes
+## Runtime notes
+
 ### Docker volumes
 - `influxdb2-data` persists InfluxDB data
 - `grafana-data` persists Grafana state
@@ -239,51 +219,37 @@ Telegraf writes to InfluxDB v2 using the standard `outputs.influxdb_v2` output p
 ### Grafana usage
 Grafana was used for:
 - datasource validation
-- CPU panel visualization
-- alert rule management
-- email notification testing through Mailpit
+- CPU visualization
+- alert rule creation
+- email delivery validation through Mailpit
 
-For interface on-change validation in Phase 1, **InfluxDB raw/query evidence** was treated as stronger proof than charts.
+For interface on-change verification, **InfluxDB raw/query evidence** remained the strongest proof of state transitions.
 
 ---
 
-## Phase 1 completion criteria
-Phase 1 is considered complete because all of the following were achieved:
+## Completion criteria
+The project is considered complete because all of the following were achieved:
+
 - collector stack is operational
-- device receivers are connected
+- device receivers are connected for the validated baseline paths
 - CPU periodic telemetry is visible end-to-end
 - interface on-change updates are visible after state change events
+- alerting works through Grafana and Mailpit
+- TLS hardening is validated successfully on the primary platform path
+- remaining platform-specific TLS limitation is documented with identified root cause
 - execution evidence has been collected and stored
-
-## Phase 2 completion criteria
-Phase 2 is considered complete because all of the following were achieved:
-- a working Grafana email contact point was configured
-- CPU alert evaluation and notification path were validated
-- interface alert evaluation and notification path were validated
-- Mailpit received alert notifications
-- alerting evidence has been collected and stored
-
----
-
-## Next phase
-### Phase 3 — Hardening (TLS)
-Planned scope:
-- TLS enablement
-- certificate handling
-- telemetry re-validation under hardened transport
-- evidence collection after hardening
 
 ---
 
 ## Summary
-This project has successfully established a **working IOS XE model-driven telemetry pipeline** using:
+This project established a **working IOS XE model-driven telemetry pipeline** using:
 - configured dial-out subscriptions
 - gRPC transport
 - Telegraf as the collector
 - InfluxDB as storage
 - Grafana for visualization and alerting
-- Mailpit for alert delivery validation
+- Mailpit for test email delivery
+- TLS hardening for the validated primary platform path
 
-**Phase 1** established the telemetry baseline.  
-**Phase 2** added and validated alerting on top of that baseline.  
-The next phase is **Phase 3 hardening with TLS**.
+The pipeline is evidence-backed across baseline telemetry, alerting, and hardening.  
+Cat9000v completed the full validation path, while CSR1000v TLS behavior was reduced to a clearly documented lab prerequisite issue rather than an unresolved ambiguity.
