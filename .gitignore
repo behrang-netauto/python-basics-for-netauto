@@ -37,7 +37,10 @@ examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/*.csv
 !examples/06_netauto_ecosystem/07_snmp_cpu_monitoring_pipeline/evidence_pack/
 !examples/06_netauto_ecosystem/07_snmp_cpu_monitoring_pipeline/evidence_pack/**/*.csv
 !examples/06_netauto_ecosystem/07_snmp_cpu_monitoring_pipeline/evidence_pack/**/*.log
-
-
+!examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack
+!examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/*.log
+!examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/*.json
+!examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/*.txt
+!examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/
 # python import profiling artifacts
 examples/06_netauto_ecosystem/importtime.txt
