@@ -139,6 +139,31 @@ pip install -r requirements.txt
 
 ---
 
+## GitHub Actions CI — Phase 1 baseline quality gate
+
+This workflow adds a first CI quality gate for the NetBox inventory workflow.
+
+It runs on `push` and `pull_request` events when changes affect either the workflow file itself or this project directory:
+
+- `.github/workflows/netbox-inventory-ci.yml`
+- `examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/**`
+
+Phase 1 intentionally focuses on offline-safe checks that do not require a live NetBox instance, device reachability, or secrets.
+
+Current checks:
+
+- Python dependency installation
+- Python syntax compilation
+- Stage1 / Stage2 dry-run import checks
+- Ruff linting
+- YAML linting
+
+NetBox-dependent smoke tests and write-back checks remain local/lab validation steps for now because they require a live NetBox environment, credentials, and the expected custom-field context.
+
+CI evidence for the first successful run is stored under `artifacts/ci_foundation/`.
+
+---
+
 ## Configuration notes
 
 ### `config.yml`

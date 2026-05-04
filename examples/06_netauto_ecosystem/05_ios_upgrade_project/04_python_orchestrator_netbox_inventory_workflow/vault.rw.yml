@@ -1,8 +1,6 @@
-
 credentials:
   username: "test"
   password: "test"
   secret: "test"
-
 netbox:
   token: "nbt_5a8RvEmwo1EV.qCmpJIWKABlCRGXOflgD3v5Orqgk7x0ae0IMyhc4"

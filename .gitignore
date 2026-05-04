@@ -42,5 +42,9 @@ examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/*.csv
 !examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/*.json
 !examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/*.txt
 !examples/06_netauto_ecosystem/08_iosxe_telemetry_pipeline/evidence_pack/**/
+!/examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/artifacts
+!/examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/artifacts/**/
+!/examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/artifacts/**/*.png
+
 # python import profiling artifacts
 examples/06_netauto_ecosystem/importtime.txt

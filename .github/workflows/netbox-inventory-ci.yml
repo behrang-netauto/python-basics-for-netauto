@@ -1,0 +1,67 @@
+name: netbox-inventory-ci
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+    paths:
+      - ".github/workflows/netbox-inventory-ci.yml"
+      - "examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/**"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/netbox-inventory-ci.yml"
+      - "examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/**"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+    working-directory: examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow
+
+jobs:
+  baseline-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout relevant paths
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/workflows
+            examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff yamllint
+
+      - name: Python syntax compile check
+        run: |
+          python -m compileall src tests run_stage1.py run_stage2.py
+
+      - name: Dry-run import checks
+        run: |
+          python -c "from src.stage1_orchestrator import stage1; print('stage1 import OK')"
+          python -c "from src.stage2_orchestrator import stage2; print('stage2 import OK')"
+
+      - name: Ruff lint
+        run: |
+          ruff check .
+
+      - name: YAML lint
+        run: |
+          yamllint .
