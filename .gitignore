@@ -48,6 +48,9 @@ examples/06_netauto_ecosystem/04_docker_monitoring/snmp_project/shared/*.csv
 !/examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/artifacts
 !/examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/artifacts/**/
 !/examples/06_netauto_ecosystem/05_ios_upgrade_project/04_python_orchestrator_netbox_inventory_workflow/artifacts/**/*.png
+!examples/06_netauto_ecosystem/02_ansible_network_automation_labs/evidence_pack/logs/
+!examples/06_netauto_ecosystem/02_ansible_network_automation_labs/evidence_pack/logs/**/
+!examples/06_netauto_ecosystem/02_ansible_network_automation_labs/evidence_pack/logs/**/*.log
 
 # python import profiling artifacts
 examples/06_netauto_ecosystem/importtime.txt

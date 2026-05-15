@@ -10,10 +10,21 @@ snmpv3_view_oid: "iso"
 snmpv3_view_permission: "included"
 snmpv3_group_security_level: "priv"
 
-baseline_loopback_interface: "Loopback100"
-baseline_loopback_description: "Managed by Ansible baseline playbook"
-baseline_loopback_ip: "10.255.100.100"
+#baseline_loopback_interface: "Loopback100"
+#baseline_loopback_description: "Managed by Ansible baseline playbook"
+#baseline_loopback_ip: "10.255.100.100"
+#baseline_loopback_mask: "255.255.255.255"
+
 baseline_loopback_mask: "255.255.255.255"
+
+baseline_loopbacks:
+  - name: "Loopback100"
+    description: "Managed by Ansible baseline playbook"
+    ip_var: "loopback_ip_100"
+
+  - name: "Loopback200"
+    description: "Monitoring loopback managed by Ansible"
+    ip_var: "loopback_ip_200"
 
 baseline_config_lines:
   - "logging buffered 64000"
