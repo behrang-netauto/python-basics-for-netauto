@@ -1,0 +1,138 @@
+---
+name: Ansible Labs CI
+
+on:
+  push:
+    branches:
+      - main
+      - "refactor/**"
+    paths:
+      - ".github/workflows/ansible-labs-ci.yml"
+      - "examples/06_netauto_ecosystem/02_ansible_network_automation_labs/**"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ansible-labs-ci.yml"
+      - "examples/06_netauto_ecosystem/02_ansible_network_automation_labs/**"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+    working-directory: examples/06_netauto_ecosystem/02_ansible_network_automation_labs
+
+jobs:
+  ansible-labs-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/workflows
+            examples/06_netauto_ecosystem/02_ansible_network_automation_labs
+
+      - name: Set up Python 3.12.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12.8"
+
+      - name: Install project Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install CI tools
+        run: |
+          pip install ruff yamllint pytest pyyaml
+
+      - name: Install Ansible collections
+        run: |
+          ansible-galaxy collection install -r requirements.yml
+
+      - name: Create Ansible vault password file
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          test -n "$ANSIBLE_VAULT_PASSWORD"
+          mkdir -p ~/.ansible
+          printf "%s" "$ANSIBLE_VAULT_PASSWORD" > ~/.ansible/vault_pass.txt
+          chmod 600 ~/.ansible/vault_pass.txt
+
+      - name: Verify Ansible collections and modules
+        run: |
+          ansible-galaxy collection list | tee /tmp/ansible_collections.txt
+          grep -q "ansible.netcommon" /tmp/ansible_collections.txt
+          grep -q "cisco.ios" /tmp/ansible_collections.txt
+          grep -q "cisco.nxos" /tmp/ansible_collections.txt
+
+          ansible-doc -t module cisco.ios.ios_facts >/dev/null
+          ansible-doc -t module cisco.ios.ios_command >/dev/null
+          ansible-doc -t module cisco.ios.ios_config >/dev/null
+          ansible-doc -t module cisco.nxos.nxos_command >/dev/null
+
+      - name: Python syntax compile check
+        run: |
+          python -m compileall tests
+
+      - name: Ruff lint
+        run: |
+          ruff check tests
+
+      - name: Run yamllint
+        run: |
+          yamllint -c .yamllint.yml . "$GITHUB_WORKSPACE/.github/workflows/ansible-labs-ci.yml"
+
+      - name: Run ansible-lint
+        env:
+          ANSIBLE_VAULT_PASSWORD_FILE: ~/.ansible/vault_pass.txt
+        run: |
+          ansible-lint playbooks/
+
+      - name: Validate Ansible inventory
+        run: |
+          ansible-inventory \
+            -i inventory/inventory_lab.yml \
+            --vault-password-file ~/.ansible/vault_pass.txt \
+            --graph | grep -q "@network_devices"
+
+          ansible-inventory \
+            -i inventory/inventory_lab.yml \
+            --vault-password-file ~/.ansible/vault_pass.txt \
+            --graph | grep -q "@ios"
+
+          ansible-inventory \
+            -i inventory/inventory_lab.yml \
+            --vault-password-file ~/.ansible/vault_pass.txt \
+            --graph | grep -q "@nxos"
+
+          ansible-inventory \
+            -i inventory/inventory_lab.yml \
+            --host csr1000v \
+            --vault-password-file ~/.ansible/vault_pass.txt \
+            | grep -q '"ansible_user"'
+
+          ansible-inventory \
+            -i inventory/inventory_lab.yml \
+            --host nxos1 \
+            --vault-password-file ~/.ansible/vault_pass.txt \
+            | grep -q '"ansible_user"'
+
+      - name: Syntax-check Ansible playbooks
+        run: |
+          for playbook in playbooks/*.yml; do
+            echo "Syntax-checking ${playbook}"
+            ansible-playbook \
+              --syntax-check "${playbook}" \
+              -i inventory/inventory_lab.yml \
+              --vault-password-file ~/.ansible/vault_pass.txt
+          done
+
+      - name: Offline pytest checks
+        run: |
+          pytest -q tests/

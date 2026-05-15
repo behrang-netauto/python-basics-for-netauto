@@ -1,0 +1,16 @@
+---
+extends: default
+
+ignore: |
+  .venv-ansible/
+  artifacts/
+  evidence_pack/
+  .pytest_cache/
+  __pycache__/
+  inventory/group_vars/network_devices/vault.yml
+
+rules:
+  document-start: disable
+  line-length: disable
+  truthy: disable
+  comments: disable

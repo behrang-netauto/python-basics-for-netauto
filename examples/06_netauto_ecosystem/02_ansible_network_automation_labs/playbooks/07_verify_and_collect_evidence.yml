@@ -1,0 +1,160 @@
+---
+- name: Prepare SNMPv3 verification evidence directories
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: "Verify | Set run metadata"
+      ansible.builtin.set_fact:
+        run_id: "{{ run_id | default(generated_run_id, true) }}"
+        evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: "Verify | Set output directories"
+      ansible.builtin.set_fact:
+        command_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}"
+        verify_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}/snmpv3_verify_outputs"
+
+    - name: "Verify | Show run id"
+      ansible.builtin.debug:
+        msg: "run_id={{ hostvars['localhost']['run_id'] }}"
+
+    - name: "Verify | Create command output directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['command_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+    - name: "Verify | Create raw verify output directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['verify_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+
+- name: Verify IOS SNMPv3 configuration and collect evidence
+  hosts: ios
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Store verification command metadata on localhost
+      ansible.builtin.set_fact:
+        verify_checks_used: "{{ verify_checks }}"
+        verify_commands_used: "{{ verify_checks | map(attribute='command') | list }}"
+      run_once: true
+      delegate_to: localhost
+      delegate_facts: true
+
+    - name: Run IOS SNMPv3 verification commands
+      cisco.ios.ios_command:
+        commands: "{{ verify_checks | map(attribute='command') | list }}"
+      register: snmpv3_verify_result
+      changed_when: false
+      ignore_errors: true
+      no_log: true
+
+    - name: Normalize verification command output
+      ansible.builtin.set_fact:
+        verify_failed: "{{ snmpv3_verify_result.failed | default(false) }}"
+        verify_error: "{{ snmpv3_verify_result.msg | default('') }}"
+        verify_stdout_list: "{{ snmpv3_verify_result.stdout if (snmpv3_verify_result.stdout is defined and snmpv3_verify_result.stdout is not string) else [] }}"
+
+    - name: Store verification output sections
+      ansible.builtin.set_fact:
+        snmp_user_output: "{{ verify_stdout_list[0] | default('') }}"
+        snmp_group_output: "{{ verify_stdout_list[1] | default('') }}"
+        snmp_engine_output: "{{ verify_stdout_list[2] | default('') }}"
+        snmp_section_output: "{{ verify_stdout_list[3] | default('') }}"
+
+    - name: Parse SNMPv3 verification output
+      ansible.builtin.set_fact:
+        snmp_user_verified: "{{ (snmp_user_output | regex_search(snmpv3_user | regex_escape)) is not none }}"
+        snmp_group_verified: "{{ (snmp_group_output | regex_search(snmpv3_group_name | regex_escape)) is not none }}"
+        snmp_engine_seen: "{{ (snmp_engine_output | trim | length) > 0 }}"
+        snmp_view_in_running_config: "{{ (snmp_section_output | regex_search('(?m)^snmp-server view\\s+' ~ (snmpv3_view_name | regex_escape) ~ '\\s+')) is not none }}"
+        snmp_section_line_count: "{{ snmp_section_output.split('\n') | reject('equalto', '') | list | length }}"
+
+    - name: Set SNMPv3 verification summary
+      ansible.builtin.set_fact:
+        snmpv3_verification_passed: >-
+          {{
+            not (verify_failed | bool)
+            and (snmp_user_verified | bool)
+            and (snmp_group_verified | bool)
+            and (snmp_view_in_running_config | bool)
+            and (snmp_engine_seen | bool)
+          }}
+
+    - name: Save raw SNMPv3 verification command output
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['verify_output_dir'] }}/{{ inventory_hostname }}_snmpv3_verify_outputs.txt"
+        mode: "0600"
+        content: |
+          host={{ inventory_hostname }}
+          ansible_host={{ ansible_host }}
+          run_id={{ hostvars['localhost']['run_id'] }}
+
+          {% for check in verify_checks %}
+          ============================================================
+          CHECK: {{ check.name }}
+          COMMAND: {{ check.command }}
+          ============================================================
+          {{ verify_stdout_list[loop.index0] | default('no output collected') }}
+
+          {% endfor %}
+
+          {% if verify_failed | bool %}
+          ============================================================
+          ERROR
+          ============================================================
+          {{ verify_error }}
+          {% endif %}
+      delegate_to: localhost
+      no_log: true
+
+
+- name: Render SNMPv3 verification evidence report
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Render SNMPv3 verification report
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/snmpv3_verify_report.md"
+        mode: "0644"
+        content: |
+          # IOS SNMPv3 Verification Report
+
+          Run ID: `{{ hostvars['localhost']['run_id'] }}`
+
+          Commands used:
+
+          `{{ hostvars['localhost']['verify_commands_used'] | default([]) | join('`, `') }}`
+
+          | Host | Mgmt IP | User verified | Group verified | View in config | EngineID seen | SNMP config lines | Passed |
+          |---|---|---|---|---|---|---|---|
+          {% for host in groups['ios'] | default([]) %}
+          | {{ host }} | {{ hostvars[host].ansible_host | default('n/a') }} | {{ hostvars[host].snmp_user_verified | default('n/a') }} | {{ hostvars[host].snmp_group_verified | default('n/a') }} | {{ hostvars[host].snmp_view_in_running_config | default('n/a') }} | {{ hostvars[host].snmp_engine_seen | default('n/a') }} | {{ hostvars[host].snmp_section_line_count | default('n/a') }} | {{ hostvars[host].snmpv3_verification_passed | default('n/a') }} |
+          {% endfor %}
+
+          ## Notes
+
+          This playbook collects SNMPv3 verification evidence after configuration.
+
+          It uses:
+          - `map(attribute='command')` to extract command strings from structured verification checks
+          - `join()` to list verification commands in the report
+          - `regex_search` to verify user, group, and view presence
+          - `split('\n')`, `reject()`, `list`, and `length` to count non-empty SNMP config lines
+
+          Raw command outputs are stored under:
+
+          `evidence_pack/command_outputs/{{ hostvars['localhost']['run_id'] }}/snmpv3_verify_outputs/`
+
+          Review raw outputs before committing.

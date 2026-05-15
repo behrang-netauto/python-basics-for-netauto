@@ -1,0 +1,117 @@
+---
+- name: Prepare baseline configuration evidence directory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: "Baseline | Set run metadata"
+      ansible.builtin.set_fact:
+        run_id: "{{ run_id | default(generated_run_id, true) }}"
+        evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: "Baseline | Set command output directory"
+      ansible.builtin.set_fact:
+        command_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}"
+
+    - name: "Baseline | Show run id"
+      ansible.builtin.debug:
+        msg: "run_id={{ hostvars['localhost']['run_id'] }}"
+
+    - name: "Baseline | Create command output directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['command_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+
+- name: Apply IOS / IOS XE baseline configuration
+  hosts: ios
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Apply IOS global baseline lines
+      cisco.ios.ios_config:
+        lines: "{{ baseline_config_lines }}"
+      register: baseline_global_result
+
+    - name: Apply IOS data-driven loopback baseline
+      cisco.ios.ios_config:
+        parents:
+          - "interface {{ item.name }}"
+        lines:
+          - "description {{ item.description }}"
+          - "ip address {{ vars[item.ip_var] }} {{ baseline_loopback_mask }}"
+      loop: "{{ baseline_loopbacks }}"
+      register: baseline_loopback_result
+
+    - name: Set baseline apply summary facts
+      ansible.builtin.set_fact:
+        baseline_global_changed: "{{ baseline_global_result.changed | default(false) }}"
+        baseline_loopback_changed: >-
+          {{
+           (baseline_loopback_result.results | default([]))
+           | selectattr('changed', 'equalto', true)
+           | list
+           | length > 0
+          }}
+        baseline_any_changed: >-
+          {{
+            (baseline_global_result.changed | default(false))
+            or (baseline_loopback_result.changed | default(false))
+          }}
+
+    - name: Save IOS running-config when modified
+      cisco.ios.ios_config:
+        save_when: modified
+
+- name: Render baseline apply summary report
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Render baseline apply report
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/baseline_apply_report.md"
+        mode: "0644"
+        content: |
+          # IOS Baseline Apply Report
+
+          Run ID: `{{ hostvars['localhost']['run_id'] }}`
+
+          | Host | Mgmt IP | Platform | Global changed | Loopback changed | Any changed |
+          |---|---|---|---|---|---|---|
+          {% for host in groups['ios'] | default([]) %}
+          | {{ host }} | {{ hostvars[host].ansible_host | default('n/a') }} | {{ hostvars[host].platform | default('ios') }} | {{ hostvars[host].baseline_global_changed | default('n/a') }} | {{ hostvars[host].baseline_loopback_changed | default('n/a') }} | {{ hostvars[host].baseline_any_changed | default('n/a') }} |
+          {% endfor %}
+
+          ## Expected idempotency behavior
+
+          First run may show `changed=true`.
+
+          A second run with the same variables should normally return `changed=false`
+          if the device configuration already matches the intended baseline.
+
+          ## Baseline scope
+
+          - logging buffered
+          - service timestamps
+          - no ip domain-lookup
+          - data-driven loopback interface configuration from `baseline_loopbacks`
+
+          ## Baseline interface targets
+
+          {% for host in groups['ios'] | default([]) %}
+          ### {{ host }}
+
+          {% for loopback in hostvars[host].baseline_loopbacks | default([]) %}
+          - {{ loopback.name }}: {{ hostvars[host][loopback.ip_var] | default('n/a') }} {{ hostvars[host].baseline_loopback_mask | default('n/a') }}
+          {% endfor %}
+
+          {% endfor %}

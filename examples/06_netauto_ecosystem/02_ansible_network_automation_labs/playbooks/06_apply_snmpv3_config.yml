@@ -1,0 +1,136 @@
+---
+- name: Prepare SNMPv3 apply evidence directory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: "SNMPv3 | Set run metadata"
+      ansible.builtin.set_fact:
+        run_id: "{{ run_id | default(generated_run_id, true) }}"
+        evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: "SNMPv3 | Set command output directory"
+      ansible.builtin.set_fact:
+        command_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}"
+
+    - name: "SNMPv3 | Show run id"
+      ansible.builtin.debug:
+        msg: "run_id={{ hostvars['localhost']['run_id'] }}"
+
+    - name: "SNMPv3 | Create command output directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['command_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+
+- name: Apply IOS SNMPv3 configuration when missing
+  hosts: ios
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Check existing SNMPv3 resources
+      cisco.ios.ios_command:
+        commands:
+          - "show running-config | include ^snmp-server view"
+          - "show running-config | include ^snmp-server group"
+          - "show snmp user | include {{ snmpv3_user }}"
+      register: snmpv3_existing_config
+      changed_when: false
+
+    - name: Store SNMPv3 check outputs
+      ansible.builtin.set_fact:
+        snmpv3_view_config: "{{ snmpv3_existing_config.stdout[0] | default('') }}"
+        snmpv3_group_config: "{{ snmpv3_existing_config.stdout[1] | default('') }}"
+        snmpv3_user_output: "{{ snmpv3_existing_config.stdout[2] | default('') }}"
+
+    - name: Detect existing SNMPv3 resources by name
+      ansible.builtin.set_fact:
+        snmpv3_view_exists: >-
+          {{
+            (snmpv3_view_config
+            | regex_search('(?m)^snmp-server view\s+' ~ (snmpv3_view_name | regex_escape) ~ '\s+')) is not none
+          }}
+        snmpv3_group_exists: >-
+          {{
+            (snmpv3_group_config
+            | regex_search('(?m)^snmp-server group\s+' ~ (snmpv3_group_name | regex_escape) ~ '\s+')) is not none
+          }}
+        snmpv3_user_exists: "{{ (snmpv3_user_output | regex_search(snmpv3_user | regex_escape)) is not none }}"
+
+    - name: Apply SNMPv3 view when missing
+      cisco.ios.ios_config:
+        lines:
+          - "snmp-server view {{ snmpv3_view_name }} {{ snmpv3_view_oid }} {{ snmpv3_view_permission }}"
+      register: snmpv3_view_apply_result
+      when: not (snmpv3_view_exists | bool)
+
+    - name: Apply SNMPv3 group when missing
+      cisco.ios.ios_config:
+        lines:
+          - "snmp-server group {{ snmpv3_group_name }} v3 {{ snmpv3_group_security_level }} read {{ snmpv3_view_name }}"
+      register: snmpv3_group_apply_result
+      when: not (snmpv3_group_exists | bool)
+
+    - name: Apply SNMPv3 user when missing
+      cisco.ios.ios_config:
+        lines:
+          - "snmp-server user {{ snmpv3_user }} {{ snmpv3_group_name }} v3 auth sha {{ vault_snmpv3_auth_password }} priv aes 128 {{ vault_snmpv3_priv_password }}"
+      register: snmpv3_user_apply_result
+      when: not (snmpv3_user_exists | bool)
+      no_log: true
+
+    - name: Set SNMPv3 apply summary facts
+      ansible.builtin.set_fact:
+        snmpv3_view_changed: "{{ snmpv3_view_apply_result.changed | default(false) }}"
+        snmpv3_group_changed: "{{ snmpv3_group_apply_result.changed | default(false) }}"
+        snmpv3_user_changed: "{{ snmpv3_user_apply_result.changed | default(false) }}"
+        snmpv3_any_changed: >-
+          {{
+            (snmpv3_view_apply_result.changed | default(false))
+            or (snmpv3_group_apply_result.changed | default(false))
+            or (snmpv3_user_apply_result.changed | default(false))
+          }}
+
+
+- name: Render SNMPv3 apply evidence report
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Render SNMPv3 apply report
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/snmpv3_apply_report.md"
+        mode: "0644"
+        content: |
+          # IOS SNMPv3 Apply Report
+
+          Run ID: `{{ hostvars['localhost']['run_id'] }}`
+
+          | Host | Mgmt IP | View existed before | Group existed before | User existed before | View changed | Group changed | User changed | Any changed |
+          |---|---|---|---|---|---|---|---|---|
+          {% for host in groups['ios'] | default([]) %}
+          | {{ host }} | {{ hostvars[host].ansible_host | default('n/a') }} | {{ hostvars[host].snmpv3_view_exists | default('n/a') }} | {{ hostvars[host].snmpv3_group_exists | default('n/a') }} | {{ hostvars[host].snmpv3_user_exists | default('n/a') }} | {{ hostvars[host].snmpv3_view_changed | default('n/a') }} | {{ hostvars[host].snmpv3_group_changed | default('n/a') }} | {{ hostvars[host].snmpv3_user_changed | default('n/a') }} | {{ hostvars[host].snmpv3_any_changed | default('n/a') }} |
+          {% endfor %}
+
+          ## Notes
+
+          This playbook checks existing SNMP server configuration with:
+
+          `show running-config | include ^snmp-server view`
+          `show running-config | include ^snmp-server group`
+          `show snmp user | include SNMPUser1`
+
+
+          It then uses name-based regex checks to decide whether the SNMPv3 view, group, or user already exists.
+
+          Current behavior is existence-based by object name, not full drift correction.
+
+          The SNMPv3 user task uses `no_log: true` because it contains authentication and privacy passwords.

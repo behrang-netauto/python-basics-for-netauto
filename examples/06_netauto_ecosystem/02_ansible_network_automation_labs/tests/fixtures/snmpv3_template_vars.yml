@@ -1,0 +1,10 @@
+---
+snmpv3_view_name: "MONITOR-VIEW"
+snmpv3_view_oid: "iso"
+snmpv3_view_permission: "included"
+snmpv3_group_name: "MONITOR-GRP"
+snmpv3_group_security_level: "priv"
+snmpv3_user: "SNMPUser1"
+
+vault_snmpv3_auth_password: "AUTHPASS123"
+vault_snmpv3_priv_password: "PRIVPASS123"

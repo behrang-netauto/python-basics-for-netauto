@@ -1,0 +1,173 @@
+---
+- name: Prepare running-config backup evidence directories
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: "Evidence | Set run metadata"
+      ansible.builtin.set_fact:
+        run_id: "{{ run_id | default(generated_run_id, true) }}"
+        evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: "Evidence | Set backup output directories"
+      ansible.builtin.set_fact:
+        command_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}"
+        backup_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}/running_config_backups"
+
+    - name: "Evidence | Show run id"
+      ansible.builtin.debug:
+        msg: "run_id={{ hostvars['localhost']['run_id'] }}"
+
+    - name: "Evidence | Create command output directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['command_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+    - name: "Evidence | Create running-config backup directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['backup_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+
+- name: Backup IOS / IOS XE running configuration
+  hosts: ios
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Collect IOS running-config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config
+      register: running_config_result
+      changed_when: false
+      ignore_errors: true
+      no_log: true
+
+    - name: Set IOS backup metadata for failed collection
+      ansible.builtin.set_fact:
+        backup_status: "failed"
+        backup_platform: "{{ platform | default('ios') }}"
+        backup_command: "show running-config"
+        backup_path: "n/a"
+        backup_error: "{{ running_config_result.msg | default('running-config collection failed') }}"
+      when: running_config_result.failed | default(false)
+
+    - name: Save IOS running-config backup evidence
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['backup_output_dir'] }}/{{ inventory_hostname }}_running_config.cfg"
+        mode: "0600"
+        content: |
+          {% if running_config_result.stdout is defined
+                and running_config_result.stdout is not string
+                and (running_config_result.stdout | length > 0) %}
+          {{ running_config_result.stdout[0] }}
+          {% else %}
+          {{ running_config_result.msg | default('no running-config output collected') }}
+          {% endif %}
+      delegate_to: localhost
+      register: backup_file_result
+      when: not (running_config_result.failed | default(false))
+      no_log: true
+
+    - name: Set IOS backup metadata for successful collection
+      ansible.builtin.set_fact:
+        backup_status: "ok"
+        backup_platform: "{{ platform | default('ios') }}"
+        backup_command: "show running-config"
+        backup_path: "{{ backup_file_result.dest }}"
+        backup_error: ""
+      when:
+        - not (running_config_result.failed | default(false))
+        - backup_file_result is defined
+
+
+- name: Backup NX-OS running configuration
+  hosts: nxos
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Collect NX-OS running-config
+      cisco.nxos.nxos_command:
+        commands:
+          - show running-config
+      register: running_config_result
+      changed_when: false
+      ignore_errors: true
+      no_log: true
+
+    - name: Set NX-OS backup metadata for failed collection
+      ansible.builtin.set_fact:
+        backup_status: "failed"
+        backup_platform: "{{ platform | default('nxos') }}"
+        backup_command: "show running-config"
+        backup_path: "n/a"
+        backup_error: "{{ running_config_result.msg | default('running-config collection failed') }}"
+      when: running_config_result.failed | default(false)
+
+    - name: Save NX-OS running-config backup evidence
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['backup_output_dir'] }}/{{ inventory_hostname }}_running_config.cfg"
+        mode: "0600"
+        content: |
+          {% if running_config_result.stdout is defined
+                and running_config_result.stdout is not string
+                and (running_config_result.stdout | length > 0) %}
+          {{ running_config_result.stdout[0] }}
+          {% else %}
+          {{ running_config_result.msg | default('no running-config output collected') }}
+          {% endif %}
+      delegate_to: localhost
+      register: backup_file_result
+      when: not (running_config_result.failed | default(false))
+      no_log: true
+
+    - name: Set NX-OS backup metadata for successful collection
+      ansible.builtin.set_fact:
+        backup_status: "ok"
+        backup_platform: "{{ platform | default('nxos') }}"
+        backup_command: "show running-config"
+        backup_path: "{{ backup_file_result.dest }}"
+        backup_error: ""
+      when:
+        - not (running_config_result.failed | default(false))
+        - backup_file_result is defined
+
+
+- name: Render network running-config backup summary report
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    backup_targets: "{{ groups['network_devices'] | default([]) }}"
+
+  tasks:
+    - name: Render backup summary report
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/backup_report.md"
+        mode: "0644"
+        content: |
+          # Network Running-Config Backup Report
+
+          Run ID: `{{ hostvars['localhost']['run_id'] }}`
+
+          | Host | Mgmt IP | Platform | Status | Command | Backup path | Error |
+          |---|---|---|---|---|---|---|
+          {% for host in backup_targets %}
+          | {{ host }} | {{ hostvars[host].ansible_host | default('n/a') }} | {{ hostvars[host].backup_platform | default(hostvars[host].platform | default('n/a')) }} | {{ hostvars[host].backup_status | default('not-run') }} | {{ hostvars[host].backup_command | default('n/a') }} | {{ hostvars[host].backup_path | default('n/a') }} | {{ hostvars[host].backup_error | default('') }} |
+          {% endfor %}
+
+          ## Notes
+
+          Raw running-config backup files are stored under:
+
+          `evidence_pack/command_outputs/{{ hostvars['localhost']['run_id'] }}/running_config_backups/`

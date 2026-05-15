@@ -1,0 +1,24 @@
+### yamllint
+
+### ruff
+All checks passed!
+
+### python compileall
+Listing 'tests'...
+Listing 'tests/fixtures'...
+
+### pytest
+........                                                                 [100%]
+8 passed in 0.11s
+
+### ansible-lint
+[2mWARNING  Found incompatible custom yamllint configuration (.yamllint.yml), please either remove the file or edit it to comply with:
+  - comments.min-spaces-from-content must be 1
+  - comments-indentation must be false
+  - braces.max-spaces-inside must be 1
+  - octal-values.forbid-implicit-octal must be true
+  - octal-values.forbid-explicit-octal must be true.
+
+Read https://docs.ansible.com/projects/lint/rules/yaml/ for more details regarding why we have these requirements. Fix mode will not be available.[0m
+
+[32mPassed[0m: 0 failure(s), 0 warning(s) in 7 files processed of 8 encountered. Profile 'basic' was required, but 'production' profile passed.

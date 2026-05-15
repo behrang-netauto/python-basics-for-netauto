@@ -1,0 +1,115 @@
+{
+    "changed": false,
+    "msg": "All items completed",
+    "results": [
+        {
+            "ansible_loop_var": "item",
+            "changed": false,
+            "elapsed": 0,
+            "failed": false,
+            "invocation": {
+                "module_args": {
+                    "active_connection_states": [
+                        "ESTABLISHED",
+                        "FIN_WAIT1",
+                        "FIN_WAIT2",
+                        "SYN_RECV",
+                        "SYN_SENT",
+                        "TIME_WAIT"
+                    ],
+                    "connect_timeout": 5,
+                    "delay": 0,
+                    "exclude_hosts": null,
+                    "host": "192.168.2.64",
+                    "msg": null,
+                    "path": null,
+                    "port": 22,
+                    "search_regex": null,
+                    "sleep": 1,
+                    "state": "started",
+                    "timeout": 5
+                }
+            },
+            "item": "csr1000v",
+            "match_groupdict": {},
+            "match_groups": [],
+            "path": null,
+            "port": 22,
+            "search_regex": null,
+            "state": "started"
+        },
+        {
+            "ansible_loop_var": "item",
+            "changed": false,
+            "elapsed": 0,
+            "failed": false,
+            "invocation": {
+                "module_args": {
+                    "active_connection_states": [
+                        "ESTABLISHED",
+                        "FIN_WAIT1",
+                        "FIN_WAIT2",
+                        "SYN_RECV",
+                        "SYN_SENT",
+                        "TIME_WAIT"
+                    ],
+                    "connect_timeout": 5,
+                    "delay": 0,
+                    "exclude_hosts": null,
+                    "host": "192.168.2.65",
+                    "msg": null,
+                    "path": null,
+                    "port": 22,
+                    "search_regex": null,
+                    "sleep": 1,
+                    "state": "started",
+                    "timeout": 5
+                }
+            },
+            "item": "iol_r1",
+            "match_groupdict": {},
+            "match_groups": [],
+            "path": null,
+            "port": 22,
+            "search_regex": null,
+            "state": "started"
+        },
+        {
+            "ansible_loop_var": "item",
+            "changed": false,
+            "elapsed": 0,
+            "failed": false,
+            "invocation": {
+                "module_args": {
+                    "active_connection_states": [
+                        "ESTABLISHED",
+                        "FIN_WAIT1",
+                        "FIN_WAIT2",
+                        "SYN_RECV",
+                        "SYN_SENT",
+                        "TIME_WAIT"
+                    ],
+                    "connect_timeout": 5,
+                    "delay": 0,
+                    "exclude_hosts": null,
+                    "host": "192.168.2.66",
+                    "msg": null,
+                    "path": null,
+                    "port": 22,
+                    "search_regex": null,
+                    "sleep": 1,
+                    "state": "started",
+                    "timeout": 5
+                }
+            },
+            "item": "nxos1",
+            "match_groupdict": {},
+            "match_groups": [],
+            "path": null,
+            "port": 22,
+            "search_regex": null,
+            "state": "started"
+        }
+    ],
+    "skipped": false
+}

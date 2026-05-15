@@ -1,0 +1,46 @@
+---
+- name: Prepare SNMPv3 rendered config evidence directory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: "Render | Set run metadata"
+      ansible.builtin.set_fact:
+        run_id: "{{ run_id | default(generated_run_id, true) }}"
+        evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: "Render | Set rendered config directory"
+      ansible.builtin.set_fact:
+        rendered_config_dir: "{{ project_root }}/{{ evidence_root_effective }}/rendered_configs/{{ run_id }}"
+
+    - name: "Render | Show run id"
+      ansible.builtin.debug:
+        msg: "run_id={{ hostvars['localhost']['run_id'] }}"
+
+    - name: "Render | Create rendered config directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['rendered_config_dir'] }}"
+        state: directory
+        mode: "0755"
+
+
+- name: Render IOS SNMPv3 candidate configuration
+  hosts: ios
+  gather_facts: false
+
+  vars:
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: Render IOS SNMPv3 candidate config
+      ansible.builtin.template:
+        src: "{{ project_root }}/templates/snmpv3_config.j2"
+        dest: "{{ hostvars['localhost']['rendered_config_dir'] }}/{{ inventory_hostname }}_snmpv3.cfg"
+        mode: "0600"
+      delegate_to: localhost
+      no_log: true

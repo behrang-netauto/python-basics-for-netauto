@@ -1,0 +1,40 @@
+host=iol_r1
+ansible_host=192.168.2.65
+run_id=20260513T142222Z
+
+============================================================
+CHECK: snmp_user
+COMMAND: show snmp user
+============================================================
+User name: ***********
+Engine ID: 800000090300AABBCC00D000
+storage-type: nonvolatile	 active
+Authentication Protocol: SHA
+Privacy Protocol: AES128
+Group-name: MONITOR-GRP
+
+============================================================
+CHECK: snmp_group
+COMMAND: show snmp group
+============================================================
+groupname: MONITOR-GRP                      security model:v3 priv 
+contextname: <no context specified>         storage-type: nonvolatile
+readview : MONITOR-VIEW                     writeview: <no writeview specified>        
+notifyview: <no notifyview specified>       
+row status: active
+
+============================================================
+CHECK: snmp_engine
+COMMAND: show snmp engineID
+============================================================
+Local SNMP engineID: 800000090300AABBCC00D000
+Remote Engine ID          IP-addr    Port
+
+============================================================
+CHECK: snmp_section
+COMMAND: show running-config | section snmp
+============================================================
+snmp-server group MONITOR-GRP v3 priv read MONITOR-VIEW 
+snmp-server view MONITOR-VIEW iso included
+
+

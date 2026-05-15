@@ -1,0 +1,38 @@
+---
+all:
+  children:
+    network_devices:
+      vars:
+        ansible_network_cli_ssh_type: paramiko
+
+      children:
+        ios:
+          vars:
+            ansible_connection: ansible.netcommon.network_cli
+            ansible_network_os: cisco.ios.ios
+            ansible_become: true
+            ansible_become_method: enable
+          hosts:
+            csr1000v:
+              ansible_host: 192.168.2.64
+              platform: iosxe
+              device_model: csr1000v
+              loopback_ip_100: 10.255.100.1
+              loopback_ip_200: 10.255.200.1
+
+            iol_r1:
+              ansible_host: 192.168.2.65
+              platform: iol
+              device_model: iol
+              loopback_ip_100: 10.255.100.2
+              loopback_ip_200: 10.255.200.2
+
+        nxos:
+          vars:
+            ansible_connection: ansible.netcommon.network_cli
+            ansible_network_os: cisco.nxos.nxos
+          hosts:
+            nxos1:
+              ansible_host: 192.168.2.66
+              platform: nxos
+              device_model: nxosv

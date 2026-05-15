@@ -1,0 +1,52 @@
+host=csr1000v
+ansible_host=192.168.2.64
+run_id=20260513T142222Z
+
+============================================================
+CHECK: snmp_user
+COMMAND: show snmp user
+============================================================
+User name: ***********
+Engine ID: 8000000903005000000C0000
+storage-type: nonvolatile	 active
+Authentication Protocol: SHA
+Privacy Protocol: AES128
+Group-name: MONITOR-GRP
+
+============================================================
+CHECK: snmp_group
+COMMAND: show snmp group
+============================================================
+groupname: ILMI                             security model:v1 
+contextname: <no context specified>         storage-type: permanent
+readview : *ilmi                            writeview: *ilmi                           
+notifyview: <no notifyview specified>       
+row status: active
+
+groupname: ILMI                             security model:v2c 
+contextname: <no context specified>         storage-type: permanent
+readview : *ilmi                            writeview: *ilmi                           
+notifyview: <no notifyview specified>       
+row status: active
+
+groupname: MONITOR-GRP                      security model:v3 priv 
+contextname: <no context specified>         storage-type: nonvolatile
+readview : MONITOR-VIEW                     writeview: <no writeview specified>        
+notifyview: <no notifyview specified>       
+row status: active
+
+============================================================
+CHECK: snmp_engine
+COMMAND: show snmp engineID
+============================================================
+Local SNMP engineID: 8000000903005000000C0000
+Remote Engine ID          IP-addr    Port
+
+============================================================
+CHECK: snmp_section
+COMMAND: show running-config | section snmp
+============================================================
+snmp-server group MONITOR-GRP v3 priv read MONITOR-VIEW 
+snmp-server view MONITOR-VIEW iso included
+
+

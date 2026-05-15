@@ -1,0 +1,88 @@
+---
+- name: Prepare IOS facts artifact and evidence directories
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: "Artifacts | Set run metadata"
+      ansible.builtin.set_fact:
+        run_id: "{{ run_id | default(generated_run_id, true) }}"
+        artifact_root_effective: "{{ artifact_root | default('artifacts') }}"
+        evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: "Artifacts | Set output directories"
+      ansible.builtin.set_fact:
+        ios_facts_artifact_dir: "{{ project_root }}/{{ artifact_root_effective }}/{{ run_id }}/ios_facts"
+        command_output_dir: "{{ project_root }}/{{ evidence_root_effective }}/command_outputs/{{ run_id }}"
+
+    - name: "Artifacts | Show run id"
+      ansible.builtin.debug:
+        msg: "run_id={{ hostvars['localhost']['run_id'] }}"
+
+    - name: "Artifacts | Create IOS facts artifact directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['ios_facts_artifact_dir'] }}"
+        state: directory
+        mode: "0755"
+
+    - name: "Evidence | Create command output directory"
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']['command_output_dir'] }}"
+        state: directory
+        mode: "0755"
+
+
+- name: Gather IOS / IOS XE facts
+  hosts: ios
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Gather IOS facts
+      cisco.ios.ios_facts:
+        gather_subset:
+          - min
+          - hardware
+      register: ios_facts_result
+      ignore_errors: true
+
+    - name: Save IOS facts raw artifact
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['ios_facts_artifact_dir'] }}/{{ inventory_hostname }}_facts.json"
+        mode: "0644"
+        content: "{{ ios_facts_result | to_nice_json }}"
+      delegate_to: localhost
+      when: ios_facts_result is defined
+
+
+- name: Render IOS facts report
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Render IOS facts summary report
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/ios_facts_report.md"
+        mode: "0644"
+        content: |
+          # IOS Facts Report
+
+          Run ID: `{{ hostvars['localhost']['run_id'] }}`
+
+          | Host | Mgmt IP | Hostname | Version | Model | Serial |
+          |---|---|---|---|---|---|
+          {% for host in groups['ios'] | default([]) %}
+          | {{ host }} | {{ hostvars[host].ansible_host | default('n/a') }} | {{ hostvars[host].ansible_net_hostname | default('n/a') }} | {{ hostvars[host].ansible_net_version | default('n/a') }} | {{ hostvars[host].ansible_net_model | default('n/a') }} | {{ hostvars[host].ansible_net_serialnum | default('n/a') }} |
+          {% endfor %}
+
+          ## Notes
+
+          Raw per-device facts are stored under:
+
+          `artifacts/{{ hostvars['localhost']['run_id'] }}/ios_facts/`

@@ -1,0 +1,46 @@
+---
+artifact_root: "artifacts"
+evidence_root: "evidence_pack"
+
+snmpv3_view_name: "MONITOR-VIEW"
+snmpv3_group_name: "MONITOR-GRP"
+snmpv3_user: "SNMPUser1"
+
+snmpv3_view_oid: "iso"
+snmpv3_view_permission: "included"
+snmpv3_group_security_level: "priv"
+
+#baseline_loopback_interface: "Loopback100"
+#baseline_loopback_description: "Managed by Ansible baseline playbook"
+#baseline_loopback_ip: "10.255.100.100"
+#baseline_loopback_mask: "255.255.255.255"
+
+baseline_loopback_mask: "255.255.255.255"
+
+baseline_loopbacks:
+  - name: "Loopback100"
+    description: "Managed by Ansible baseline playbook"
+    ip_var: "loopback_ip_100"
+
+  - name: "Loopback200"
+    description: "Monitoring loopback managed by Ansible"
+    ip_var: "loopback_ip_200"
+
+baseline_config_lines:
+  - "logging buffered 64000"
+  - "service timestamps log datetime msec"
+  - "service timestamps debug datetime msec"
+  - "no ip domain lookup"
+
+verify_checks:
+  - name: snmp_user
+    command: "show snmp user"
+
+  - name: snmp_group
+    command: "show snmp group"
+
+  - name: snmp_engine
+    command: "show snmp engineID"
+
+  - name: snmp_section
+    command: "show running-config | section snmp"

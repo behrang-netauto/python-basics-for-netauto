@@ -1,0 +1,127 @@
+---
+- name: Prepare connectivity evidence directory and run TCP reachability checks
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    connectivity_targets: "{{ groups['ios'] | default([]) + groups['nxos'] | default([]) }}"
+    project_root: "{{ playbook_dir | dirname }}"
+
+  tasks:
+    - name: Set connectivity run metadata
+      ansible.builtin.set_fact:
+        connectivity_run_id: "{{ run_id | default(generated_run_id, true) }}"
+        evidence_base: "{{ evidence_root | default('evidence_pack') }}"
+
+    - name: Set command output directory
+      ansible.builtin.set_fact:
+        command_output_dir: "{{ project_root }}/{{ evidence_base }}/command_outputs/{{ connectivity_run_id }}"
+
+    - name: Show connectivity run id
+      ansible.builtin.debug:
+        msg: "connectivity_run_id={{ connectivity_run_id }}"
+
+    - name: Create command output directory
+      ansible.builtin.file:
+        path: "{{ command_output_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Check TCP/22 reachability from control node
+      ansible.builtin.wait_for:
+        host: "{{ hostvars[item].ansible_host }}"
+        port: "{{ hostvars[item].ansible_port | default(22) }}"
+        timeout: 5
+        state: started
+      loop: "{{ connectivity_targets }}"
+      register: tcp_ssh_checks
+      ignore_errors: true
+
+    - name: Save TCP reachability evidence
+      ansible.builtin.copy:
+        dest: "{{ command_output_dir }}/tcp_ssh_reachability.json"
+        mode: "0644"
+        content: "{{ tcp_ssh_checks | to_nice_json }}"
+
+
+- name: Check IOS / IOS XE network_cli connectivity
+  hosts: ios
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars:
+    connectivity_run_id: "{{ hostvars['localhost']['connectivity_run_id'] }}"
+    evidence_base: "{{ hostvars['localhost']['evidence_base'] }}"
+    command_output_dir: "{{ hostvars['localhost']['command_output_dir'] }}"
+
+  tasks:
+    - name: Run IOS show version
+      cisco.ios.ios_command:
+        commands:
+          - show version
+      register: ios_connectivity_result
+      changed_when: false
+      ignore_errors: true
+
+    - name: Save IOS connectivity command output
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/{{ inventory_hostname }}_ios_show_version.txt"
+        mode: "0644"
+        content: |
+          host={{ inventory_hostname }}
+          ansible_host={{ ansible_host }}
+          platform={{ platform | default('ios') }}
+          command=show version
+          status={{ 'failed' if ios_connectivity_result.failed | default(false) else 'ok' }}
+
+          {% if ios_connectivity_result.stdout is defined
+                and ios_connectivity_result.stdout is not string
+                and (ios_connectivity_result.stdout | length > 0) %}
+          {{ ios_connectivity_result.stdout[0] }}
+          {% else %}
+          {{ ios_connectivity_result.msg | default('no command output collected') }}
+          {% endif %}
+      delegate_to: localhost
+      when: ios_connectivity_result is defined
+
+
+- name: Check NX-OS network_cli connectivity
+  hosts: nxos
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars:
+    connectivity_run_id: "{{ hostvars['localhost']['connectivity_run_id'] }}"
+    evidence_base: "{{ hostvars['localhost']['evidence_base'] }}"
+    command_output_dir: "{{ hostvars['localhost']['command_output_dir'] }}"
+
+  tasks:
+    - name: Run NX-OS show interface brief
+      cisco.nxos.nxos_command:
+        commands:
+          - show interface brief
+      register: nxos_connectivity_result
+      changed_when: false
+      ignore_errors: true
+
+    - name: Save NX-OS connectivity command output
+      ansible.builtin.copy:
+        dest: "{{ hostvars['localhost']['command_output_dir'] }}/{{ inventory_hostname }}_nxos_show_interface_brief.txt"
+        mode: "0644"
+        content: |
+          host={{ inventory_hostname }}
+          ansible_host={{ ansible_host }}
+          platform={{ platform | default('nxos') }}
+          command=show interface brief
+          status={{ 'failed' if nxos_connectivity_result.failed | default(false) else 'ok' }}
+
+          {% if nxos_connectivity_result.stdout is defined
+                and nxos_connectivity_result.stdout is not string
+                and (nxos_connectivity_result.stdout | length > 0) %}
+          {{ nxos_connectivity_result.stdout[0] }}
+          {% else %}
+          {{ nxos_connectivity_result.msg | default('no command output collected') }}
+          {% endif %}
+      delegate_to: localhost
+      when: nxos_connectivity_result is defined

@@ -1,0 +1,15 @@
+---
+profile: basic
+
+exclude_paths:
+  - .venv-ansible/
+  - artifacts/
+  - evidence_pack/
+  - .pytest_cache/
+  - __pycache__/
+
+warn_list:
+  - experimental
+
+skip_list:
+  - yaml[line-length]
