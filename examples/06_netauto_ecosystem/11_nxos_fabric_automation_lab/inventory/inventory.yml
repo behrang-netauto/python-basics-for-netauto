@@ -1,0 +1,72 @@
+---
+all:
+  children:
+    fabric_nodes:
+      children:
+        nxos:
+          children:
+            spines:
+              hosts:
+                spine1:
+                  ansible_host: 192.168.2.140
+                  eve_node: NXOS
+                  fabric_role: spine
+                  mgmt_interface: mgmt0
+
+                spine2:
+                  ansible_host: 192.168.2.146
+                  eve_node: NXOS18
+                  fabric_role: spine
+                  mgmt_interface: mgmt0
+
+            border_gateways:
+              hosts:
+                bgw1:
+                  ansible_host: 192.168.2.141
+                  eve_node: NXOS2
+                  fabric_role: border_gateway
+                  mgmt_interface: mgmt0
+
+                bgw2:
+                  ansible_host: 192.168.2.145
+                  eve_node: NXOS17
+                  fabric_role: border_gateway
+                  mgmt_interface: mgmt0
+
+            leaves:
+              hosts:
+                leaf1:
+                  ansible_host: 192.168.2.142
+                  eve_node: NXOS3
+                  fabric_role: leaf
+                  mgmt_interface: mgmt0
+
+                leaf2:
+                  ansible_host: 192.168.2.143
+                  eve_node: NXOS5
+                  fabric_role: leaf
+                  mgmt_interface: mgmt0
+
+                leaf3:
+                  ansible_host: 192.168.2.144
+                  eve_node: NXOS6
+                  fabric_role: leaf
+                  mgmt_interface: mgmt0
+
+            dci_nodes:
+              hosts:
+                dci:
+                  ansible_host: 192.168.2.147
+                  eve_node: NXOS19
+                  fabric_role: dci
+                  mgmt_interface: mgmt0
+
+    external_nodes:
+      children:
+        wan_routers:
+          hosts:
+            wan_r9:
+              ansible_host: 192.168.2.148
+              eve_node: R9
+              fabric_role: wan
+              phase1_collect: false

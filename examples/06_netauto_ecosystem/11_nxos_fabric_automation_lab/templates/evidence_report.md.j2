@@ -1,0 +1,114 @@
+# NX-OS Fabric Evidence Report
+
+{% set total_hosts = collected_hosts | length %}
+{% set collected = namespace(count=0) %}
+{% for host in collected_hosts %}
+{% if hostvars[host].vxlan_evpn_category_results is defined %}
+{% set collected.count = collected.count + 1 %}
+{% endif %}
+{% endfor %}
+
+## 1. What this report is
+
+This report documents a read-only evidence collection run against the NX-OS EVPN fabric.
+
+The playbook collected operational command output from the devices in scope and stored the raw evidence files for later review.  
+No configuration changes were applied by this playbook.
+
+**Fabric:** `{{ fabric_name | default('not recorded') }}`  
+**Site:** `{{ fabric_site | default('not recorded') }}`  
+**Run ID:** `{{ run_id_effective }}`  
+**Generated from:** Ansible evidence collection
+
+---
+
+## 2. Collection summary
+
+This run included **{{ total_hosts }}** device(s).  
+Collection results were registered for **{{ collected.count }}** device(s).
+
+| Item | Value |
+|---|---|
+| Collection type | Read-only |
+| Configuration changes | None |
+| Raw evidence root | `{{ evidence_root }}/{{ raw_evidence_dir }}/{{ run_id_effective }}/` |
+| Report purpose | Evidence index and collection overview |
+
+---
+
+## 3. Devices in scope
+
+| Device | Role | Management IP | EVE node | Result |
+|---|---|---:|---|---|
+{% for host in collected_hosts %}
+{% set hv = hostvars[host] %}
+{% if hv.vxlan_evpn_category_results is defined %}
+{% set collection_status = 'collected' %}
+{% else %}
+{% set collection_status = 'not collected' %}
+{% endif %}
+| `{{ host }}` | {{ hv.fabric_role | default('not recorded') }} | `{{ hv.ansible_host | default('not recorded') }}` | {{ hv.eve_node | default('not recorded') }} | {{ collection_status }} |
+{% endfor %}
+
+---
+
+## 4. Per-device collection notes
+
+{% for host in collected_hosts %}
+{% set hv = hostvars[host] %}
+
+### {{ host }}
+
+**Role:** {{ hv.fabric_role | default('not recorded') }}  
+**Management IP:** `{{ hv.ansible_host | default('not recorded') }}`  
+**EVE node:** {{ hv.eve_node | default('not recorded') }}  
+**Raw evidence path:** `{{ evidence_root }}/{{ raw_evidence_dir }}/{{ run_id_effective }}/{{ host }}/`
+
+{% if hv.vxlan_evpn_category_results is defined %}
+The playbook registered command output for this device in the following category group(s):
+
+| Category | Result | Commands attempted |
+|---|---|---:|
+{% for result in hv.vxlan_evpn_category_results.results | default([]) %}
+{% if result.failed | default(false) %}
+{% set category_status = 'failed' %}
+{% else %}
+{% set category_status = 'collected' %}
+{% endif %}
+| `{{ result.item.key }}` | {{ category_status }} | {{ result.item.value | length }} |
+{% endfor %}
+
+{% else %}
+No command results were registered for this device in this run.
+
+This usually means the device was not reached by the playbook, was not included in the active inventory scope, or the collection task did not produce a registered result.
+{% endif %}
+
+{% endfor %}
+
+---
+
+## 5. Command reference
+
+The following command groups were used by the playbook.  
+This section is a reference only; the raw command outputs are stored under the evidence directory.
+
+{% for category, commands in vxlan_evpn_command_sets.items() %}
+### {{ category }}
+
+{% for command in commands %}
+- `{{ command }}`
+{% endfor %}
+
+{% endfor %}
+
+---
+
+## 6. Limits of this report
+
+This report is an evidence index, not a validation verdict.
+
+It confirms which devices were included in the collection run, which command groups were attempted, and where the raw outputs were saved.  
+It does not by itself prove that the EVPN control plane, VXLAN data plane, tenant reachability, or fabric redundancy are fully correct.
+
+Further interpretation should be done by reviewing the raw command outputs and, if needed, adding manual observations in a separate analysis note.

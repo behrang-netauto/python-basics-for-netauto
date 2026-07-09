@@ -1,0 +1,112 @@
+---
+- name: "Prepare this evidence collection run"
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    project_root: "{{ playbook_dir | dirname }}"
+    evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
+    raw_evidence_dir_effective: "{{ raw_evidence_dir | default('raw') }}"
+    report_dir_effective: "{{ report_dir | default('reports') }}"
+
+  tasks:
+    - name: "Define the run ID and project path"
+      ansible.builtin.set_fact:
+        run_id_effective: "{{ run_id | default(generated_run_id, true) }}"
+        project_root_effective: "{{ project_root }}"
+        evidence_root_effective: "{{ evidence_root_effective }}"
+        raw_evidence_dir_effective: "{{ raw_evidence_dir_effective }}"
+        report_dir_effective: "{{ report_dir_effective }}"
+
+    - name: "Create folders for this run"
+      ansible.builtin.file:
+        path: "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ item }}/{{ run_id_effective }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ raw_evidence_dir_effective }}"
+        - "{{ report_dir_effective }}"
+
+
+- name: "Collect read-only evidence from the NX-OS EVPN fabric"
+  hosts: nxos
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: "Define the raw evidence path for this device"
+      ansible.builtin.set_fact:
+        run_id_effective: "{{ hostvars['localhost']['run_id_effective'] }}"
+        project_root_effective: "{{ hostvars['localhost']['project_root_effective'] }}"
+        evidence_root_effective: "{{ hostvars['localhost']['evidence_root_effective'] }}"
+        raw_evidence_dir_effective: "{{ hostvars['localhost']['raw_evidence_dir_effective'] }}"
+        device_raw_dir: "{{ hostvars['localhost']['project_root_effective'] }}/{{ hostvars['localhost']['evidence_root_effective'] }}/{{ hostvars['localhost']['raw_evidence_dir_effective'] }}/{{ hostvars['localhost']['run_id_effective'] }}/{{ inventory_hostname }}"
+
+    - name: "Create the raw evidence directory for this device"
+      ansible.builtin.file:
+        path: "{{ device_raw_dir }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: "Collect the configured NX-OS command groups"
+      cisco.nxos.nxos_command:
+        commands: "{{ item.value }}"
+      loop: "{{ vxlan_evpn_command_sets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      register: vxlan_evpn_category_results
+      failed_when: false
+
+    - name: "Write one raw evidence file per command group"
+      ansible.builtin.copy:
+        dest: "{{ device_raw_dir }}/{{ item.item.key }}.txt"
+        mode: "0644"
+        content: |
+          Host: {{ inventory_hostname }}
+          Management IP: {{ ansible_host | default('not recorded') }}
+          EVE node: {{ eve_node | default('not recorded') }}
+          Role: {{ fabric_role | default('not recorded') }}
+          Category: {{ item.item.key }}
+          Run ID: {{ run_id_effective }}
+          Collection result: {% if item.failed | default(false) %}failed{% else %}completed{% endif %}
+          {% if item.msg is defined %}
+          Module message: {{ item.msg }}
+          {% endif %}
+
+          {% for command in item.item.value %}
+          ================================================================================
+          COMMAND: {{ command }}
+          ================================================================================
+
+          {{ item.stdout[loop.index0] | default('NO OUTPUT RETURNED') }}
+
+          {% endfor %}
+      loop: "{{ vxlan_evpn_category_results.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+      delegate_to: localhost
+
+
+- name: "Render the fabric evidence report"
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    collected_hosts: "{{ groups['nxos'] | default([]) }}"
+    reference_nxos_host: "{{ collected_hosts[0] if collected_hosts | length > 0 else '' }}"
+    report_output_dir: "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ report_dir_effective }}/{{ run_id_effective }}"
+
+  tasks:
+    - name: "Create the Markdown report"
+      ansible.builtin.template:
+        src: "{{ project_root_effective }}/templates/evidence_report.md.j2"
+        dest: "{{ report_output_dir }}/evidence_report.md"
+        mode: "0644"
+      vars:
+        fabric_name: "{{ hostvars[reference_nxos_host].fabric_name | default('not recorded') }}"
+        fabric_site: "{{ hostvars[reference_nxos_host].fabric_site | default('not recorded') }}"
+        evidence_root: "{{ evidence_root_effective }}"
+        raw_evidence_dir: "{{ raw_evidence_dir_effective }}"
+        vxlan_evpn_command_sets: "{{ hostvars[reference_nxos_host].vxlan_evpn_command_sets | default({}) }}"

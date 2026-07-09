@@ -1,0 +1,64 @@
+Host: bgw1
+Management IP: 192.168.2.141
+EVE node: NXOS2
+Role: border_gateway
+Category: host_learning
+Run ID: 20260709T164643Z
+Collection result: completed
+================================================================================
+COMMAND: show mac address-table
+================================================================================
+
+Legend: 
+        * - primary entry, G - Gateway MAC, (R) - Routed MAC, O - Overlay MAC
+        age - seconds since last seen,+ - primary entry using vPC Peer-Link,
+        (T) - True, (F) - False, C - ControlPlane MAC, ~ - vsan,
+        (NA)- Not Applicable A - ESI Active Path, S - ESI Standby Path
+        TL - True Learned, PS - Peer Sync, RO - Re-originate 
+   VLAN     MAC Address      Type      age     Secure NTFY Ports
+---------+-----------------+--------+---------+------+----+------------------
+G    -     0200.0a0a.0002   static   -         F      F    sup-eth1(R)
+G    -     2020.0000.00aa   static   -         F      F    sup-eth1(R)
+G    -     5002.0000.1b08   static   -         F      F    sup-eth1(R)
+G 2000     5002.0000.1b08   static   -         F      F    sup-eth1(R)
+
+================================================================================
+COMMAND: show l2route evpn mac all
+================================================================================
+
+Flags -(Rmac):Router MAC (Stt):Static (L):Local (R):Remote 
+(Dup):Duplicate (Spl):Split (Rcv):Recv (AD):Auto-Delete (D):Del Pending
+(S):Stale (C):Clear, (Ps):Peer Sync (Ro):Re-Originated (Nho):NH-Override
+(Asy):Asymmetric (Gw):Gateway
+(Bh):Blackhole, (Dum):Dummy
+(Pf):Permanently-Frozen, (Orp): Orphan
+(PipOrp): Directly connected Orphan to PIP based vPC BGW 
+(PipPeerOrp): Orphan connected to peer of PIP based vPC BGW 
+
+NH Flags- (Asy): Asymmetric VNI
+
+Topology    Mac Address    Prod   Flags              Seq No     Next-Hops                              
+----------- -------------- ------ ------------------ ---------- ---------------------------------------------------------
+250         5002.0000.1b08 VXLAN  Stt,Nho,Dum,       0          10.3.0.2
+2000        5002.0000.1b08 VXLAN  Stt,Nho,Dum,       0          10.3.0.2
+
+================================================================================
+COMMAND: show ip arp vrf all
+================================================================================
+
+Flags: * - Adjacencies learnt on non-active FHRP router
+       + - Adjacencies synced via CFSoE
+       # - Adjacencies Throttled for Glean
+       CP - Added via L2RIB, Control plane Adjacencies
+       PS - Added via L2RIB, Peer Sync
+       RO - Re-Originated Peer Sync Entry
+       D - Static Adjacencies attached to down interface
+
+IP ARP Table for all contexts
+Total number of entries: 4
+Address         Age       MAC Address     Interface       Flags
+192.168.2.1     00:00:13  b0fc.88aa.9cfc  mgmt0                   
+192.168.2.220   00:02:52  000c.2993.12f5  mgmt0                   
+10.4.0.5        00:10:47  5001.0000.1b08  Ethernet1/2             
+10.10.1.5       00:01:40  5013.0000.1b08  Ethernet1/3
+

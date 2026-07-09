@@ -1,0 +1,405 @@
+Host: bgw1
+Management IP: 192.168.2.141
+EVE node: NXOS2
+Role: border_gateway
+Category: underlay
+Run ID: 20260709T164643Z
+Collection result: completed
+================================================================================
+COMMAND: show ip ospf neighbors
+================================================================================
+
+OSPF Process ID UNDERLAY VRF default
+ Total number of neighbors: 1
+ Neighbor ID     Pri State            Up Time  Address         Interface
+ 10.2.0.3          1 FULL/ -          04:14:00 10.4.0.5        Eth1/2
+
+================================================================================
+COMMAND: show ip route
+================================================================================
+
+IP Route Table for VRF "default"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+10.0.128.16/30, ubest/mbest: 1/0, attached
+    *via 10.0.128.17, Eth1/4, [0/0], 04:24:31, direct
+10.0.128.17/32, ubest/mbest: 1/0, attached
+    *via 10.0.128.17, Eth1/4, [0/0], 04:24:31, local
+10.2.0.1/32, ubest/mbest: 2/0, attached
+    *via 10.2.0.1, Lo0, [0/0], 04:27:49, local, tag 54321
+    *via 10.2.0.1, Lo0, [0/0], 04:27:49, direct, tag 54321
+10.2.0.2/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/81], 04:13:54, ospf-UNDERLAY, intra
+10.2.0.3/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/41], 04:13:54, ospf-UNDERLAY, intra
+10.3.0.1/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/81], 04:13:54, ospf-UNDERLAY, intra
+10.3.0.2/32, ubest/mbest: 2/0, attached
+    *via 10.3.0.2, Lo1, [0/0], 04:27:50, local, tag 54321
+    *via 10.3.0.2, Lo1, [0/0], 04:27:50, direct, tag 54321
+10.4.0.0/30, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/80], 04:13:54, ospf-UNDERLAY, intra
+10.4.0.4/30, ubest/mbest: 1/0, attached
+    *via 10.4.0.6, Eth1/2, [0/0], 04:24:31, direct
+10.4.0.6/32, ubest/mbest: 1/0, attached
+    *via 10.4.0.6, Eth1/2, [0/0], 04:24:31, local
+10.10.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:19:35, bgp-65001, external, tag 65003
+10.10.0.2/32, ubest/mbest: 2/0, attached
+    *via 10.10.0.2, Lo100, [0/0], 04:19:30, local, tag 54321
+    *via 10.10.0.2, Lo100, [0/0], 04:19:30, direct, tag 54321
+10.10.1.0/30, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:40, bgp-65001, external, tag 65003
+10.10.1.4/30, ubest/mbest: 1/0, attached
+    *via 10.10.1.6, Eth1/3, [0/0], 04:24:31, direct, tag 54321
+10.10.1.6/32, ubest/mbest: 1/0, attached
+    *via 10.10.1.6, Eth1/3, [0/0], 04:24:31, local, tag 54321
+10.254.254.1/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/41], 04:13:54, ospf-UNDERLAY, intra
+20.2.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:40, bgp-65001, external, tag 65003
+20.3.0.2/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:40, bgp-65001, external, tag 65003
+100.100.100.100/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:41, bgp-65001, external, tag 65003
+
+================================================================================
+COMMAND: show ip route vrf all
+================================================================================
+
+IP Route Table for VRF "default"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+10.0.128.16/30, ubest/mbest: 1/0, attached
+    *via 10.0.128.17, Eth1/4, [0/0], 04:24:31, direct
+10.0.128.17/32, ubest/mbest: 1/0, attached
+    *via 10.0.128.17, Eth1/4, [0/0], 04:24:31, local
+10.2.0.1/32, ubest/mbest: 2/0, attached
+    *via 10.2.0.1, Lo0, [0/0], 04:27:49, local, tag 54321
+    *via 10.2.0.1, Lo0, [0/0], 04:27:49, direct, tag 54321
+10.2.0.2/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/81], 04:13:54, ospf-UNDERLAY, intra
+10.2.0.3/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/41], 04:13:54, ospf-UNDERLAY, intra
+10.3.0.1/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/81], 04:13:54, ospf-UNDERLAY, intra
+10.3.0.2/32, ubest/mbest: 2/0, attached
+    *via 10.3.0.2, Lo1, [0/0], 04:27:50, local, tag 54321
+    *via 10.3.0.2, Lo1, [0/0], 04:27:50, direct, tag 54321
+10.4.0.0/30, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/80], 04:13:54, ospf-UNDERLAY, intra
+10.4.0.4/30, ubest/mbest: 1/0, attached
+    *via 10.4.0.6, Eth1/2, [0/0], 04:24:31, direct
+10.4.0.6/32, ubest/mbest: 1/0, attached
+    *via 10.4.0.6, Eth1/2, [0/0], 04:24:31, local
+10.10.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:19:35, bgp-65001, external, tag 65003
+10.10.0.2/32, ubest/mbest: 2/0, attached
+    *via 10.10.0.2, Lo100, [0/0], 04:19:30, local, tag 54321
+    *via 10.10.0.2, Lo100, [0/0], 04:19:30, direct, tag 54321
+10.10.1.0/30, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:40, bgp-65001, external, tag 65003
+10.10.1.4/30, ubest/mbest: 1/0, attached
+    *via 10.10.1.6, Eth1/3, [0/0], 04:24:31, direct, tag 54321
+10.10.1.6/32, ubest/mbest: 1/0, attached
+    *via 10.10.1.6, Eth1/3, [0/0], 04:24:31, local, tag 54321
+10.254.254.1/32, ubest/mbest: 1/0
+    *via 10.4.0.5, Eth1/2, [110/41], 04:13:54, ospf-UNDERLAY, intra
+20.2.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:40, bgp-65001, external, tag 65003
+20.3.0.2/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:40, bgp-65001, external, tag 65003
+100.100.100.100/32, ubest/mbest: 1/0
+    *via 10.10.1.5, [20/0], 04:23:41, bgp-65001, external, tag 65003
+
+IP Route Table for VRF "management"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+192.168.2.0/24, ubest/mbest: 1/0, attached
+    *via 192.168.2.141, mgmt0, [0/0], 04:27:44, direct
+192.168.2.141/32, ubest/mbest: 1/0, attached
+    *via 192.168.2.141, mgmt0, [0/0], 04:27:44, local
+
+IP Route Table for VRF "myvrf_50000"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+
+IP Route Table for VRF "egress-loadbalance-resolution-"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+================================================================================
+COMMAND: show ip pim neighbor
+================================================================================
+
+PIM Neighbor Status for VRF "default"
+Neighbor        Interface            Uptime    Expires   DR       Bidir-  BFD    ECMP Redirect
+                                                         Priority Capable State     Capable
+10.4.0.5        Ethernet1/2          04:14:06  00:01:43  1        yes     n/a     no
+
+================================================================================
+COMMAND: show ip pim interface
+================================================================================
+
+PIM Interface Status for VRF "default"
+loopback0, Interface status: protocol-up/link-up/admin-up
+  IP address: 10.2.0.1, IP subnet: 10.2.0.1/32
+  PIM DR: 10.2.0.1, DR's priority: 1
+  PIM neighbor count: 0
+  PIM hello interval: 30 secs, next hello sent in: 00:00:25
+  PIM neighbor holdtime: 105 secs
+  PIM configured DR priority: 1
+  PIM configured DR delay: 3 secs
+  PIM border interface: no
+  PIM GenID sent in Hellos: 0x0144244c
+  PIM Hello MD5-AH Authentication: disabled
+  PIM Neighbor policy: none configured
+  PIM Join-Prune inbound policy: none configured
+  PIM Join-Prune outbound policy: none configured
+  PIM Join-Prune interval: 1 minutes
+  PIM Join-Prune next sending: 0 minutes
+  PIM BFD enabled: no
+  PIM passive interface: no
+  PIM VPC SVI: no
+  PIM Auto Enabled: no
+  PIM Interface Statistics, last reset: never
+    General (sent/received):
+      Hellos: 565/0 (early: 0), JPs: 0/0, Asserts: 0/0
+      Grafts: 0/0, Graft-Acks: 0/0
+      DF-Offers: 0/0, DF-Winners: 0/0, DF-Backoffs: 0/0, DF-Passes: 0/0
+    Errors:
+      Checksum errors: 0, Invalid packet types/DF subtypes: 0/0
+      Authentication failed: 0
+      Packet length errors: 0, Bad version packets: 0, Packets from self: 0
+      Packets from non-neighbors: 0
+          Packets received on passiveinterface: 0
+      JPs received on RPF-interface: 0
+      (*,G) Joins received with no/wrong RP: 0/0
+      (*,G)/(S,G) JPs received for SSM/Bidir groups: 0/0
+      JPs filtered by inbound policy: 0
+      JPs filtered by outbound policy: 0
+  PIM border-router interface: no
+  PIM pfm-sd boundary: none
+      pfm-sd packets sent : 0
+      pfm-sd packets received :0
+      pfm-sd packets forwarded :0
+loopback1, Interface status: protocol-up/link-up/admin-up
+  IP address: 10.3.0.2, IP subnet: 10.3.0.2/32
+  PIM DR: 10.3.0.2, DR's priority: 1
+  PIM neighbor count: 0
+  PIM hello interval: 30 secs, next hello sent in: 00:00:04
+  PIM neighbor holdtime: 105 secs
+  PIM configured DR priority: 1
+  PIM configured DR delay: 3 secs
+  PIM border interface: no
+  PIM GenID sent in Hellos: 0x243d481a
+  PIM Hello MD5-AH Authentication: disabled
+  PIM Neighbor policy: none configured
+  PIM Join-Prune inbound policy: none configured
+  PIM Join-Prune outbound policy: none configured
+  PIM Join-Prune interval: 1 minutes
+  PIM Join-Prune next sending: 0 minutes
+  PIM BFD enabled: no
+  PIM passive interface: no
+  PIM VPC SVI: no
+  PIM Auto Enabled: no
+  PIM Interface Statistics, last reset: never
+    General (sent/received):
+      Hellos: 565/0 (early: 0), JPs: 0/0, Asserts: 0/0
+      Grafts: 0/0, Graft-Acks: 0/0
+      DF-Offers: 0/0, DF-Winners: 0/0, DF-Backoffs: 0/0, DF-Passes: 0/0
+    Errors:
+      Checksum errors: 0, Invalid packet types/DF subtypes: 0/0
+      Authentication failed: 0
+      Packet length errors: 0, Bad version packets: 0, Packets from self: 0
+      Packets from non-neighbors: 0
+          Packets received on passiveinterface: 0
+      JPs received on RPF-interface: 0
+      (*,G) Joins received with no/wrong RP: 0/0
+      (*,G)/(S,G) JPs received for SSM/Bidir groups: 0/0
+      JPs filtered by inbound policy: 0
+      JPs filtered by outbound policy: 0
+  PIM border-router interface: no
+  PIM pfm-sd boundary: none
+      pfm-sd packets sent : 0
+      pfm-sd packets received :0
+      pfm-sd packets forwarded :0
+loopback100, Interface status: protocol-up/link-up/admin-up
+  IP address: 10.10.0.2, IP subnet: 10.10.0.2/32
+  PIM DR: 10.10.0.2, DR's priority: 1
+  PIM neighbor count: 0
+  PIM hello interval: 30 secs, next hello sent in: 00:00:27
+  PIM neighbor holdtime: 105 secs
+  PIM configured DR priority: 1
+  PIM configured DR delay: 3 secs
+  PIM border interface: no
+  PIM GenID sent in Hellos: 0x39be4fd2
+  PIM Hello MD5-AH Authentication: disabled
+  PIM Neighbor policy: none configured
+  PIM Join-Prune inbound policy: none configured
+  PIM Join-Prune outbound policy: none configured
+  PIM Join-Prune interval: 1 minutes
+  PIM Join-Prune next sending: 0 minutes
+  PIM BFD enabled: no
+  PIM passive interface: no
+  PIM VPC SVI: no
+  PIM Auto Enabled: no
+  PIM Interface Statistics, last reset: never
+    General (sent/received):
+      Hellos: 549/0 (early: 0), JPs: 0/0, Asserts: 0/0
+      Grafts: 0/0, Graft-Acks: 0/0
+      DF-Offers: 0/0, DF-Winners: 0/0, DF-Backoffs: 0/0, DF-Passes: 0/0
+    Errors:
+      Checksum errors: 0, Invalid packet types/DF subtypes: 0/0
+      Authentication failed: 0
+      Packet length errors: 0, Bad version packets: 0, Packets from self: 0
+      Packets from non-neighbors: 0
+          Packets received on passiveinterface: 0
+      JPs received on RPF-interface: 0
+      (*,G) Joins received with no/wrong RP: 0/0
+      (*,G)/(S,G) JPs received for SSM/Bidir groups: 0/0
+      JPs filtered by inbound policy: 0
+      JPs filtered by outbound policy: 0
+  PIM border-router interface: no
+  PIM pfm-sd boundary: none
+      pfm-sd packets sent : 0
+      pfm-sd packets received :0
+      pfm-sd packets forwarded :0
+Ethernet1/1, Interface status: protocol-down/link-down/admin-down
+  IP address: none
+  PIM DR: 0.0.0.0, DR's priority: 1
+  PIM neighbor count: 0
+  PIM hello interval: 30 secs, next hello sent in: 0.000000
+  PIM neighbor holdtime: 105 secs
+  PIM configured DR priority: 1
+  PIM configured DR delay: 3 secs
+  PIM border interface: no
+  PIM GenID sent in Hellos: 0x2f7a49cb
+  PIM Hello MD5-AH Authentication: disabled
+  PIM Neighbor policy: none configured
+  PIM Join-Prune inbound policy: none configured
+  PIM Join-Prune outbound policy: none configured
+  PIM Join-Prune interval: 1 minutes
+  PIM Join-Prune next sending: 0 minutes
+  PIM BFD enabled: no
+  PIM passive interface: no
+  PIM VPC SVI: no
+  PIM Auto Enabled: no
+  PIM Interface Statistics, last reset: never
+    General (sent/received):
+      Hellos: 0/0 (early: 0), JPs: 0/0, Asserts: 0/0
+      Grafts: 0/0, Graft-Acks: 0/0
+      DF-Offers: 0/0, DF-Winners: 0/0, DF-Backoffs: 0/0, DF-Passes: 0/0
+    Errors:
+      Checksum errors: 0, Invalid packet types/DF subtypes: 0/0
+      Authentication failed: 0
+      Packet length errors: 0, Bad version packets: 0, Packets from self: 0
+      Packets from non-neighbors: 0
+          Packets received on passiveinterface: 0
+      JPs received on RPF-interface: 0
+      (*,G) Joins received with no/wrong RP: 0/0
+      (*,G)/(S,G) JPs received for SSM/Bidir groups: 0/0
+      JPs filtered by inbound policy: 0
+      JPs filtered by outbound policy: 0
+  PIM border-router interface: no
+  PIM pfm-sd boundary: none
+      pfm-sd packets sent : 0
+      pfm-sd packets received :0
+      pfm-sd packets forwarded :0
+Ethernet1/2, Interface status: protocol-up/link-up/admin-up
+  IP address: 10.4.0.6, IP subnet: 10.4.0.4/30
+  PIM DR: 10.4.0.6, DR's priority: 1
+  PIM neighbor count: 1
+  PIM hello interval: 30 secs, next hello sent in: 00:00:18
+  PIM neighbor holdtime: 105 secs
+  PIM configured DR priority: 1
+  PIM configured DR delay: 3 secs
+  PIM border interface: no
+  PIM GenID sent in Hellos: 0x0eca558c
+  PIM Hello MD5-AH Authentication: disabled
+  PIM Neighbor policy: none configured
+  PIM Join-Prune inbound policy: none configured
+  PIM Join-Prune outbound policy: none configured
+  PIM Join-Prune interval: 1 minutes
+  PIM Join-Prune next sending: 0 minutes
+  PIM BFD enabled: no
+  PIM passive interface: no
+  PIM VPC SVI: no
+  PIM Auto Enabled: no
+  PIM Interface Statistics, last reset: never
+    General (sent/received):
+      Hellos: 558/538 (early: 0), JPs: 254/256, Asserts: 0/0
+      Grafts: 0/0, Graft-Acks: 0/0
+      DF-Offers: 0/0, DF-Winners: 0/0, DF-Backoffs: 0/0, DF-Passes: 0/0
+    Errors:
+      Checksum errors: 0, Invalid packet types/DF subtypes: 0/0
+      Authentication failed: 0
+      Packet length errors: 0, Bad version packets: 0, Packets from self: 0
+      Packets from non-neighbors: 0
+          Packets received on passiveinterface: 0
+      JPs received on RPF-interface: 0
+      (*,G) Joins received with no/wrong RP: 0/0
+      (*,G)/(S,G) JPs received for SSM/Bidir groups: 0/0
+      JPs filtered by inbound policy: 0
+      JPs filtered by outbound policy: 0
+  PIM border-router interface: no
+  PIM pfm-sd boundary: none
+      pfm-sd packets sent : 0
+      pfm-sd packets received :0
+      pfm-sd packets forwarded :0
+Ethernet1/4, Interface status: protocol-up/link-up/admin-up
+  IP address: 10.0.128.17, IP subnet: 10.0.128.16/30
+  PIM DR: 10.0.128.17, DR's priority: 1
+  PIM neighbor count: 0
+  PIM hello interval: 30 secs, next hello sent in: 00:00:22
+  PIM neighbor holdtime: 105 secs
+  PIM configured DR priority: 1
+  PIM configured DR delay: 3 secs
+  PIM border interface: no
+  PIM GenID sent in Hellos: 0x1a682194
+  PIM Hello MD5-AH Authentication: disabled
+  PIM Neighbor policy: none configured
+  PIM Join-Prune inbound policy: none configured
+  PIM Join-Prune outbound policy: none configured
+  PIM Join-Prune interval: 1 minutes
+  PIM Join-Prune next sending: 0 minutes
+  PIM BFD enabled: no
+  PIM passive interface: no
+  PIM VPC SVI: no
+  PIM Auto Enabled: no
+  PIM Interface Statistics, last reset: never
+    General (sent/received):
+      Hellos: 559/0 (early: 0), JPs: 0/0, Asserts: 0/0
+      Grafts: 0/0, Graft-Acks: 0/0
+      DF-Offers: 0/0, DF-Winners: 0/0, DF-Backoffs: 0/0, DF-Passes: 0/0
+    Errors:
+      Checksum errors: 0, Invalid packet types/DF subtypes: 0/0
+      Authentication failed: 0
+      Packet length errors: 0, Bad version packets: 0, Packets from self: 0
+      Packets from non-neighbors: 0
+          Packets received on passiveinterface: 0
+      JPs received on RPF-interface: 0
+      (*,G) Joins received with no/wrong RP: 0/0
+      (*,G)/(S,G) JPs received for SSM/Bidir groups: 0/0
+      JPs filtered by inbound policy: 0
+      JPs filtered by outbound policy: 0
+  PIM border-router interface: no
+  PIM pfm-sd boundary: none
+      pfm-sd packets sent : 0
+      pfm-sd packets received :0
+      pfm-sd packets forwarded :0
+

@@ -1,0 +1,12 @@
+ansible-core
+ansible-lint
+yamllint
+ruff
+pytest
+jinja2
+pyyaml
+jmespath
+paramiko
+ansible-pylibssh
+ncclient
+xmltodict

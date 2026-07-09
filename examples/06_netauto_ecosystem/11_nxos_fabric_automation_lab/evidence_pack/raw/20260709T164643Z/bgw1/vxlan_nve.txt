@@ -1,0 +1,66 @@
+Host: bgw1
+Management IP: 192.168.2.141
+EVE node: NXOS2
+Role: border_gateway
+Category: vxlan_nve
+Run ID: 20260709T164643Z
+Collection result: completed
+================================================================================
+COMMAND: show nve peers
+================================================================================
+
+Interface Peer-IP                                 State LearnType Uptime   Router-Mac       
+--------- --------------------------------------  ----- --------- -------- -----------------
+nve1      20.3.0.2                                Up    CP        04:22:28 n/a
+
+================================================================================
+COMMAND: show nve vni
+================================================================================
+
+Codes: CP - Control Plane        DP - Data Plane          
+       UC - Unconfigured         SA - Suppress ARP        
+       S-ND - Suppress ND        
+       SU - Suppress Unknown Unicast 
+       Xconn - Crossconnect      
+       MS-IR - Multisite Ingress Replication 
+       HYB - Hybrid IRB mode
+    
+Interface VNI      Multicast-group   State Mode Type [BD/VRF]      Flags
+--------- -------- ----------------- ----- ---- ------------------ -----
+nve1      30001    239.1.1.0         Up    CP   L2 [250]           MS-IR 
+nve1      50000    n/a               Up    CP   L3 [myvrf_50000]
+
+================================================================================
+COMMAND: show interface nve1
+================================================================================
+
+nve1 is up
+admin state is up,  Hardware: NVE
+  MTU 9216 bytes
+  Encapsulation VXLAN
+  Auto-mdix is turned off
+  RX
+    ucast: 0 pkts, 0 bytes - mcast: 0 pkts, 0 bytes
+  TX
+    ucast: 0 pkts, 0 bytes - mcast: 0 pkts, 0 bytes
+
+================================================================================
+COMMAND: show running-config interface nve1
+================================================================================
+
+!Command: show running-config interface nve1
+!No configuration change since last restart
+!Time: Thu Jul  9 16:47:20 2026
+
+version 10.5(3) Bios:version  
+
+interface nve1
+  no shutdown
+  host-reachability protocol bgp
+  source-interface loopback1
+  multisite border-gateway interface loopback100
+  member vni 30001
+    multisite ingress-replication
+    mcast-group 239.1.1.0
+  member vni 50000 associate-vrf
+
