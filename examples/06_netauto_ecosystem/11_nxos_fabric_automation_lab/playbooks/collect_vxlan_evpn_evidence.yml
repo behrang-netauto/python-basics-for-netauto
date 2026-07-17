@@ -28,7 +28,6 @@
         - "{{ raw_evidence_dir_effective }}"
         - "{{ report_dir_effective }}"
 
-
 - name: "Collect read-only evidence from the NX-OS EVPN fabric"
   hosts: nxos
   gather_facts: false
@@ -41,7 +40,12 @@
         project_root_effective: "{{ hostvars['localhost']['project_root_effective'] }}"
         evidence_root_effective: "{{ hostvars['localhost']['evidence_root_effective'] }}"
         raw_evidence_dir_effective: "{{ hostvars['localhost']['raw_evidence_dir_effective'] }}"
-        device_raw_dir: "{{ hostvars['localhost']['project_root_effective'] }}/{{ hostvars['localhost']['evidence_root_effective'] }}/{{ hostvars['localhost']['raw_evidence_dir_effective'] }}/{{ hostvars['localhost']['run_id_effective'] }}/{{ inventory_hostname }}"
+        device_raw_dir: >-
+          {{ hostvars['localhost']['project_root_effective'] }}/
+          {{- hostvars['localhost']['evidence_root_effective'] }}/
+          {{- hostvars['localhost']['raw_evidence_dir_effective'] }}/
+          {{- hostvars['localhost']['run_id_effective'] }}/
+          {{- inventory_hostname }}
 
     - name: "Create the raw evidence directory for this device"
       ansible.builtin.file:
@@ -50,44 +54,78 @@
         mode: "0755"
       delegate_to: localhost
 
-    - name: "Collect the configured NX-OS command groups"
-      cisco.nxos.nxos_command:
-        commands: "{{ item.value }}"
+    - name: "Start with an empty command set for this device"
+      ansible.builtin.set_fact:
+        device_command_sets: {}
+
+    - name: "Select command groups for this device role"
+      ansible.builtin.set_fact:
+        device_command_sets: >-
+          {{
+            device_command_sets
+            | combine({item.key: item.value.commands})
+          }}
       loop: "{{ vxlan_evpn_command_sets | dict2items }}"
       loop_control:
         label: "{{ item.key }}"
-      register: vxlan_evpn_category_results
-      failed_when: false
+      when: fabric_role in item.value.roles
+
+    - name: "Collect each NX-OS command independently"
+      cisco.nxos.nxos_command:
+        commands:
+          - "{{ item[1] }}"
+      loop: "{{ query('subelements', device_command_sets | dict2items, 'value') }}"
+      loop_control:
+        label: "{{ item[0].key }} | {{ item[1] }}"
+      register: vxlan_evpn_command_results
+      changed_when: false
+      ignore_errors: true
 
     - name: "Write one raw evidence file per command group"
       ansible.builtin.copy:
-        dest: "{{ device_raw_dir }}/{{ item.item.key }}.txt"
+        dest: "{{ device_raw_dir }}/{{ item.key }}.txt"
         mode: "0644"
         content: |
           Host: {{ inventory_hostname }}
           Management IP: {{ ansible_host | default('not recorded') }}
           EVE node: {{ eve_node | default('not recorded') }}
           Role: {{ fabric_role | default('not recorded') }}
-          Category: {{ item.item.key }}
+          Category: {{ item.key }}
           Run ID: {{ run_id_effective }}
-          Collection result: {% if item.failed | default(false) %}failed{% else %}completed{% endif %}
-          {% if item.msg is defined %}
-          Module message: {{ item.msg }}
+
+          {% set group_status = namespace(failed=0) %}
+          {% for command_result in vxlan_evpn_command_results.results | default([]) %}
+          {% if command_result.item[0].key == item.key %}
+          {% if command_result.failed | default(false) %}
+          {% set group_status.failed = group_status.failed + 1 %}
           {% endif %}
-
-          {% for command in item.item.value %}
-          ================================================================================
-          COMMAND: {{ command }}
-          ================================================================================
-
-          {{ item.stdout[loop.index0] | default('NO OUTPUT RETURNED') }}
-
+          {% endif %}
           {% endfor %}
-      loop: "{{ vxlan_evpn_category_results.results | default([]) }}"
-      loop_control:
-        label: "{{ item.item.key }}"
-      delegate_to: localhost
+          Collection result: {% if group_status.failed > 0 %}completed-with-errors{% else %}completed{% endif %}
+          Commands attempted: {{ item.value | length }}
+          Commands failed: {{ group_status.failed }}
 
+          {% for command_result in vxlan_evpn_command_results.results | default([]) %}
+          {% if command_result.item[0].key == item.key %}
+          ================================================================================
+          COMMAND: {{ command_result.item[1] }}
+          STATUS: {% if command_result.failed | default(false) %}failed{% else %}completed{% endif %}
+          ================================================================================
+
+          {% if command_result.msg is defined %}
+          MODULE MESSAGE:
+          {{ command_result.msg }}
+
+          {% endif %}
+          OUTPUT:
+          {{ command_result.stdout[0] | default('NO OUTPUT RETURNED') }}
+
+          {% endif %}
+          {% endfor %}
+      loop: "{{ device_command_sets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      delegate_to: localhost
 
 - name: "Render the fabric evidence report"
   hosts: localhost

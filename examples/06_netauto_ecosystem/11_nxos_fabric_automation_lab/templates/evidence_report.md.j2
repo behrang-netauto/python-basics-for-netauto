@@ -3,7 +3,7 @@
 {% set total_hosts = collected_hosts | length %}
 {% set collected = namespace(count=0) %}
 {% for host in collected_hosts %}
-{% if hostvars[host].vxlan_evpn_category_results is defined %}
+{% if hostvars[host].vxlan_evpn_command_results is defined %}
 {% set collected.count = collected.count + 1 %}
 {% endif %}
 {% endfor %}
@@ -42,7 +42,7 @@ Collection results were registered for **{{ collected.count }}** device(s).
 |---|---|---:|---|---|
 {% for host in collected_hosts %}
 {% set hv = hostvars[host] %}
-{% if hv.vxlan_evpn_category_results is defined %}
+{% if hv.vxlan_evpn_command_results is defined %}
 {% set collection_status = 'collected' %}
 {% else %}
 {% set collection_status = 'not collected' %}
@@ -64,18 +64,19 @@ Collection results were registered for **{{ collected.count }}** device(s).
 **EVE node:** {{ hv.eve_node | default('not recorded') }}  
 **Raw evidence path:** `{{ evidence_root }}/{{ raw_evidence_dir }}/{{ run_id_effective }}/{{ host }}/`
 
-{% if hv.vxlan_evpn_category_results is defined %}
+{% if hv.vxlan_evpn_command_results is defined %}
 The playbook registered command output for this device in the following category group(s):
 
 | Category | Result | Commands attempted |
 |---|---|---:|
-{% for result in hv.vxlan_evpn_category_results.results | default([]) %}
-{% if result.failed | default(false) %}
-{% set category_status = 'failed' %}
-{% else %}
-{% set category_status = 'collected' %}
+{% for category, commands in hv.device_command_sets.items() %}
+{% set category_status = namespace(failed=0) %}
+{% for result in hv.vxlan_evpn_command_results.results | default([]) %}
+{% if result.item[0].key == category and result.failed | default(false) %}
+{% set category_status.failed = category_status.failed + 1 %}
 {% endif %}
-| `{{ result.item.key }}` | {{ category_status }} | {{ result.item.value | length }} |
+{% endfor %}
+| `{{ category }}` | {% if category_status.failed > 0 %}completed with errors{% else %}collected{% endif %} | {{ commands | length }} |
 {% endfor %}
 
 {% else %}
@@ -93,10 +94,12 @@ This usually means the device was not reached by the playbook, was not included 
 The following command groups were used by the playbook.  
 This section is a reference only; the raw command outputs are stored under the evidence directory.
 
-{% for category, commands in vxlan_evpn_command_sets.items() %}
+{% for category, command_group in vxlan_evpn_command_sets.items() %}
 ### {{ category }}
 
-{% for command in commands %}
+**Roles:** `{{ command_group.roles | join(', ') }}`
+
+{% for command in command_group.commands %}
 - `{{ command }}`
 {% endfor %}
 

@@ -1,0 +1,51 @@
+Host: dci
+Management IP: 192.168.2.147
+EVE node: NXOS19
+Role: dci
+Category: bgp_configuration
+Run ID: 20260710T155040Z
+
+Collection result: completedCommands attempted: 1
+Commands failed: 0
+
+================================================================================
+COMMAND: show running-config | section bgp
+STATUS: completed================================================================================
+
+OUTPUT:
+feature bgp
+router bgp 65003
+  address-family ipv4 unicast
+    network 100.100.100.100/32
+    maximum-paths 64
+    maximum-paths ibgp 64
+  address-family l2vpn evpn
+    retain route-target all
+  template peer OVERLAY-PEERING
+    update-source loopback0
+    ebgp-multihop 5
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      route-map unchanged out
+  neighbor 10.2.0.1
+    inherit peer OVERLAY-PEERING
+    remote-as 65001
+    address-family l2vpn evpn
+      rewrite-evpn-rt-asn
+  neighbor 10.10.1.2
+    remote-as 65002
+    update-source Ethernet1/2
+    address-family ipv4 unicast
+      next-hop-self
+  neighbor 10.10.1.6
+    remote-as 65001
+    update-source Ethernet1/1
+    address-family ipv4 unicast
+      next-hop-self
+  neighbor 20.2.0.1
+    inherit peer OVERLAY-PEERING
+    remote-as 65002
+    address-family l2vpn evpn
+      rewrite-evpn-rt-asn
+

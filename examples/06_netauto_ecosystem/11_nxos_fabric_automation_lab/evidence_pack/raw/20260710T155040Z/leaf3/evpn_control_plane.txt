@@ -1,0 +1,56 @@
+Host: leaf3
+Management IP: 192.168.2.144
+EVE node: NXOS6
+Role: leaf
+Category: evpn_control_plane
+Run ID: 20260710T155040Z
+
+Collection result: completedCommands attempted: 5
+Commands failed: 0
+
+================================================================================
+COMMAND: show bgp l2vpn evpn summary
+STATUS: completed================================================================================
+
+OUTPUT:
+BGP summary information for VRF default, address family L2VPN EVPN
+BGP router identifier 20.2.0.3, local AS number 65002
+BGP table version is 3, L2VPN EVPN config peers 1, capable peers 1
+0 network entries and 0 paths using 0 bytes of memory
+BGP attribute entries [0/0], BGP AS path entries [0/0]
+BGP community entries [0/0], BGP clusterlist entries [0/0]
+
+Neighbor        V    AS    MsgRcvd    MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+20.2.0.4        4 65002        201        199        3    0    0 03:11:48 0         
+
+Neighbor        T    AS Type-1     Type-2     Type-3     Type-4     Type-5     Type-6     Type-7     Type-8     Type-12   
+20.2.0.4        I 65002 0          0          0          0          0          0          0          0          0
+
+================================================================================
+COMMAND: show bgp l2vpn evpn
+STATUS: completed================================================================================
+
+OUTPUT:
+
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 2
+STATUS: completed================================================================================
+
+OUTPUT:
+
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 3
+STATUS: completed================================================================================
+
+OUTPUT:
+
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 5
+STATUS: completed================================================================================
+
+OUTPUT:
+
+

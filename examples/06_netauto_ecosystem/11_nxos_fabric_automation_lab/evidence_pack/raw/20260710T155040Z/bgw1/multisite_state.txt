@@ -1,0 +1,57 @@
+Host: bgw1
+Management IP: 192.168.2.141
+EVE node: NXOS2
+Role: border_gateway
+Category: multisite_state
+Run ID: 20260710T155040Z
+
+Collection result: completedCommands attempted: 4
+Commands failed: 0
+
+================================================================================
+COMMAND: show running-config | include evpn
+STATUS: completed================================================================================
+
+OUTPUT:
+nv overlay evpn
+evpn multisite border-gateway 65001
+    route-target both auto evpn
+  evpn multisite dci-tracking
+  evpn multisite fabric-tracking
+  evpn multisite dci-tracking
+    address-family l2vpn evpn
+    address-family l2vpn evpn
+      rewrite-evpn-rt-asn
+evpn
+
+================================================================================
+COMMAND: show running-config | include fabric-tracking
+STATUS: completed================================================================================
+
+OUTPUT:
+evpn multisite fabric-tracking
+
+================================================================================
+COMMAND: show running-config | include dci-tracking
+STATUS: completed================================================================================
+
+OUTPUT:
+evpn multisite dci-tracking
+  evpn multisite dci-tracking
+
+================================================================================
+COMMAND: show running-config interface loopback100
+STATUS: completed================================================================================
+
+OUTPUT:
+!Command: show running-config interface loopback100
+!No configuration change since last restart
+!Time: Fri Jul 10 15:53:48 2026
+
+version 10.5(3) Bios:version  
+
+interface loopback100
+  ip address 10.10.0.2/32 tag 54321
+  ip router ospf UNDERLAY area 0.0.0.0
+  ip pim sparse-mode
+

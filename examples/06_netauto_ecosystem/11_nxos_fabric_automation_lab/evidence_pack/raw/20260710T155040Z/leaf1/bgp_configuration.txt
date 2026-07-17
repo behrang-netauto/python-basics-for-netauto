@@ -1,0 +1,26 @@
+Host: leaf1
+Management IP: 192.168.2.142
+EVE node: NXOS3
+Role: leaf
+Category: bgp_configuration
+Run ID: 20260710T155040Z
+
+Collection result: completedCommands attempted: 1
+Commands failed: 0
+
+================================================================================
+COMMAND: show running-config | section bgp
+STATUS: completed================================================================================
+
+OUTPUT:
+feature bgp
+  host-reachability protocol bgp
+router bgp 65001
+  router-id 10.2.0.2
+  neighbor 10.2.0.3
+    remote-as 65001
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+
