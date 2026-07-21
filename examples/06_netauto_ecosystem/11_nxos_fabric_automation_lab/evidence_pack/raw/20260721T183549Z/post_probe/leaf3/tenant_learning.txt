@@ -1,0 +1,75 @@
+Host: leaf3
+Management IP: 192.168.2.144
+EVE node: NXOS6
+Role: leaf
+Stage: post_probe
+Category: tenant_learning
+Run ID: 20260721T183549Z
+
+Collection result: completed
+Commands attempted: 3
+Commands failed: 0
+
+================================================================================
+COMMAND: show mac address-table
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Legend: 
+        * - primary entry, G - Gateway MAC, (R) - Routed MAC, O - Overlay MAC
+        age - seconds since last seen,+ - primary entry using vPC Peer-Link,
+        (T) - True, (F) - False, C - ControlPlane MAC, ~ - vsan,
+        (NA)- Not Applicable A - ESI Active Path, S - ESI Standby Path
+        TL - True Learned, PS - Peer Sync, RO - Re-originate 
+   VLAN     MAC Address      Type      age     Secure NTFY Ports
+---------+-----------------+--------+---------+------+----+------------------
+*  300     0050.0000.0f00   dynamic  NA         F      F    Eth1/2
+* 2000     5005.0000.1b08   static   -         F      F    nve1(20.3.0.1)
+* 2000     5006.0000.1b08   static   -         F      F    Vlan2000
+G    -     2020.0000.00aa   static   -         F      F    sup-eth1(R)
+G    -     5006.0000.1b08   static   -         F      F    sup-eth1(R)
+G  300     5006.0000.1b08   static   -         F      F    sup-eth1(R)
+G 2000     5006.0000.1b08   static   -         F      F    sup-eth1(R)
+
+================================================================================
+COMMAND: show ip arp vrf all
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Flags: * - Adjacencies learnt on non-active FHRP router
+       + - Adjacencies synced via CFSoE
+       # - Adjacencies Throttled for Glean
+       CP - Added via L2RIB, Control plane Adjacencies
+       PS - Added via L2RIB, Peer Sync
+       RO - Re-Originated Peer Sync Entry
+       D - Static Adjacencies attached to down interface
+
+IP ARP Table for all contexts
+Total number of entries: 4
+Address         Age       MAC Address     Interface       Flags
+10.10.11.11     00:01:21  0050.0000.0f00  Vlan300                 
+192.168.2.1     00:00:32  b0fc.88aa.9cfc  mgmt0                   
+192.168.2.220   00:05:52  000c.2993.12f5  mgmt0                   
+20.4.0.9        00:03:18  5012.0000.1b08  Ethernet1/1
+
+================================================================================
+COMMAND: show l2route evpn mac-ip all
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Flags -(Rmac):Router MAC (Stt):Static (L):Local (R):Remote 
+(Dup):Duplicate (Spl):Split (Rcv):Recv(D):Del Pending (S):Stale (C):Clear
+(Ps):Peer Sync (Ro):Re-Originated (Orp):Orphan (Asy):Asymmetric (Gw):Gateway
+(Bh):Blackhole
+(Piporp): Directly connected Orphan to PIP based vPC BGW 
+(Pipporp): Orphan connected to peer of PIP based vPC BGW 
+
+NH Flags- (Asy): Asymmetric VNI
+
+Topology    Mac Address    Host IP                                 Prod   Flags              Seq No     Next-Hops                              
+----------- -------------- --------------------------------------- ------ ----------------- ---------- ---------------------------------------------------------
+300         0050.0000.0f00 10.10.11.11                             HMM    L,                 0         Local
+

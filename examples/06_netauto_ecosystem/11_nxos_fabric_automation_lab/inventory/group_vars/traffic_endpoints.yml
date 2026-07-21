@@ -1,0 +1,11 @@
+---
+ansible_connection: ssh
+
+# The Alpine endpoints currently use the same Vault-managed credentials as NX-OS.
+ansible_user: "{{ vault_lab_username }}"
+ansible_password: "{{ vault_lab_password }}"
+
+ansible_ssh_timeout: 30
+ansible_become: false
+
+# Traffic probes use ansible.builtin.raw, so Python is not required on Alpine.

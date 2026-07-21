@@ -1,0 +1,160 @@
+---
+schema_version: 1
+
+# Command groups collected once before active traffic generation.
+baseline_only_command_sets:
+  platform:
+    roles:
+      - spine
+      - leaf
+      - border_gateway
+      - dci
+    commands:
+      - show version
+      - show running-config | include ^hostname
+      - show feature
+      - show interface brief
+      - show ip interface brief vrf all
+      - show vrf
+
+  site_underlay:
+    roles:
+      - spine
+      - leaf
+      - border_gateway
+    commands:
+      - show ip ospf neighbors
+      - show ip route
+      - show ip pim neighbor
+      - show ip pim interface
+
+  evpn_control_plane:
+    roles:
+      - spine
+      - leaf
+      - border_gateway
+      - dci
+    commands:
+      - show bgp l2vpn evpn summary
+      - show bgp l2vpn evpn
+      - show bgp l2vpn evpn route-type 3
+      - show bgp l2vpn evpn route-type 5
+
+  bgp_configuration:
+    roles:
+      - spine
+      - leaf
+      - border_gateway
+      - dci
+    commands:
+      - show running-config | section bgp
+
+  vxlan_nve:
+    roles:
+      - leaf
+      - border_gateway
+    commands:
+      - show nve peers
+      - show nve vni
+      - show interface nve1
+      - show running-config interface nve1
+
+  tenant_state:
+    roles:
+      - leaf
+      - border_gateway
+    commands:
+      - show vlan brief
+      - show ip route vrf all
+
+  multisite_state:
+    roles:
+      - border_gateway
+    commands:
+      - show running-config | include evpn
+      - show running-config | include fabric-tracking
+      - show running-config | include dci-tracking
+      - show running-config interface loopback100
+
+  dci_state:
+    roles:
+      - dci
+    commands:
+      - show bgp ipv4 unicast summary
+      - show ip route
+      - show running-config interface loopback0
+
+# These exact command groups are collected both before and after the probes.
+# Identical group names and command lists make direct file comparison possible.
+pre_post_comparison_command_sets:
+  tenant_learning:
+    roles:
+      - leaf
+      - border_gateway
+    commands:
+      - show mac address-table
+      - show ip arp vrf all
+      - show l2route evpn mac-ip all
+
+  evpn_type2_learning:
+    roles:
+      - spine
+      - leaf
+      - border_gateway
+      - dci
+    commands:
+      - show bgp l2vpn evpn route-type 2
+
+# Only the measured probe result is retained as evidence.
+traffic_probes:
+  defaults:
+    warmup_packets: 2
+    measurement_packets: 5
+    interval_seconds: 1
+    response_timeout_seconds: 2
+
+  probes:
+    - id: server1_to_gateway
+      category: gateway
+      source: server1
+      destination: 10.10.10.1
+
+    - id: server2_to_gateway
+      category: gateway
+      source: server2
+      destination: 10.10.10.1
+
+    - id: server3_to_gateway
+      category: gateway
+      source: server3
+      destination: 10.10.11.1
+
+    - id: server1_to_server2
+      category: same_subnet
+      source: server1
+      destination: 10.10.10.11
+
+    - id: server2_to_server1
+      category: same_subnet
+      source: server2
+      destination: 10.10.10.10
+
+    - id: server1_to_server3
+      category: inter_subnet
+      source: server1
+      destination: 10.10.11.11
+
+    - id: server3_to_server1
+      category: inter_subnet
+      source: server3
+      destination: 10.10.10.10
+
+    - id: server2_to_server3
+      category: inter_subnet
+      source: server2
+      destination: 10.10.11.11
+
+    - id: server3_to_server2
+      category: inter_subnet
+      source: server3
+      destination: 10.10.10.11

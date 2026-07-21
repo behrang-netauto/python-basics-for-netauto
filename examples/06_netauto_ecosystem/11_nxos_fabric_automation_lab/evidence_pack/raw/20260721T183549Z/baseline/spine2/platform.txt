@@ -1,0 +1,388 @@
+Host: spine2
+Management IP: 192.168.2.146
+EVE node: NXOS18
+Role: spine
+Stage: baseline
+Category: platform
+Run ID: 20260721T183549Z
+
+Collection result: completed
+Commands attempted: 6
+Commands failed: 0
+
+================================================================================
+COMMAND: show version
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Cisco Nexus Operating System (NX-OS) Software
+TAC support: http://www.cisco.com/tac
+Documents: http://www.cisco.com/en/US/products/ps9372/tsd_products_support_series_home.html
+Copyright (c) 2002-2025, Cisco Systems, Inc. All rights reserved.
+The copyrights to certain works contained herein are owned by
+other third parties and are used and distributed under license.
+Some parts of this software are covered under the GNU Public
+License. A copy of the license is available at
+http://www.gnu.org/licenses/gpl.html.
+
+Nexus 9000v is a demo version of the Nexus Operating System
+
+Software
+  BIOS: version 
+  NXOS: version 10.5(3) [Feature Release]
+  BIOS compile time:  
+  NXOS image file is: bootflash:///nxos64-cs.10.5.3.F.bin
+  NXOS compile time:  4/15/2025 31:00:00 [04/19/2025 05:20:48]
+
+Hardware
+  cisco Nexus9000 C9300v Chassis 
+  Intel(R) Xeon(R) CPU E5-2680 v3 @ 2.50GHz with 8135532 kB of memory.
+  Processor Board ID 9XXJVHBAP2A
+  Device name: Spine2
+  bootflash:    8598528 kB
+
+Kernel uptime is 0 day(s), 3 hour(s), 55 minute(s), 13 second(s)
+
+Last reset 
+  Reason: Unknown
+  System version: 
+  Service: 
+
+plugin
+  Core Plugin, Ethernet Plugin
+
+Active Package(s):
+
+================================================================================
+COMMAND: show running-config | include ^hostname
+STATUS: completed
+================================================================================
+
+OUTPUT:
+hostname Spine2
+
+================================================================================
+COMMAND: show feature
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Feature Name          Instance  State   
+--------------------  --------  --------
+Flexlink               1          disabled
+analytics              1          disabled
+app-hosting            1          disabled
+bash-shell             1          disabled
+bfd                    1          disabled
+bgp                    1          enabled 
+bluez                  1          disabled
+bulkstat               1          disabled
+cable-management       1          disabled
+container-tracker      1          disabled
+cryptopqc              1          disabled
+macsec                 1          disabled
+dhcp                   1          disabled
+dot1x                  1          disabled
+eigrp                  1          disabled
+eigrp                  2          disabled
+eigrp                  3          disabled
+eigrp                  4          disabled
+eigrp                  5          disabled
+eigrp                  6          disabled
+eigrp                  7          disabled
+eigrp                  8          disabled
+eigrp                  9          disabled
+eigrp                  10         disabled
+eigrp                  11         disabled
+eigrp                  12         disabled
+eigrp                  13         disabled
+eigrp                  14         disabled
+eigrp                  15         disabled
+eigrp                  16         disabled
+enm                    1          disabled
+epbr                   1          disabled
+eth-port-sec           1          disabled
+evb                    1          disabled
+evc                    1          disabled
+evmed                  1          disabled
+fabric-access          1          disabled
+fport-channel-trunk    1          disabled
+fsync_mgr              1          disabled
+grpc                   1          disabled
+grpctunnel             1          disabled
+hardware-telemetry     1          disabled
+hmm                    1          enabled 
+hsrp_engine            1          disabled
+icam                   1          enabled 
+imp                    1          disabled
+interface-vlan         1          disabled
+intersight             1          enabled 
+isis                   1          disabled
+isis                   2          disabled
+isis                   3          disabled
+isis                   4          disabled
+isis                   5          disabled
+isis                   6          disabled
+isis                   7          disabled
+isis                   8          disabled
+isis                   9          disabled
+isis                   10         disabled
+isis                   11         disabled
+isis                   12         disabled
+isis                   13         disabled
+isis                   14         disabled
+isis                   15         disabled
+isis                   16         disabled
+itd                    1          disabled
+l2vpn                  1          disabled
+l3vpn                  1          disabled
+lacp                   1          disabled
+ldap                   1          disabled
+ldp                    1          disabled
+license-smart          1          enabled 
+lldp                   1          enabled 
+mdns                   1          disabled
+mpls-evpn              1          disabled
+mpls_oam               1          disabled
+mpls_static            1          disabled
+msdp                   1          disabled
+mvpn                   1          disabled
+mvrp                   1          disabled
+nat                    1          disabled
+nbm                    1          disabled
+netconf                1          disabled
+ngmvpn                 1          disabled
+ngoam                  1          disabled
+npiv                   1          disabled
+nve                    1          enabled 
+nxapi                  1          enabled 
+nxsdk_app1             1          disabled
+nxsdk_app10            1          disabled
+nxsdk_app11            1          disabled
+nxsdk_app12            1          disabled
+nxsdk_app13            1          disabled
+nxsdk_app14            1          disabled
+nxsdk_app15            1          disabled
+nxsdk_app16            1          disabled
+nxsdk_app17            1          disabled
+nxsdk_app18            1          disabled
+nxsdk_app19            1          disabled
+nxsdk_app2             1          disabled
+nxsdk_app20            1          disabled
+nxsdk_app21            1          disabled
+nxsdk_app22            1          disabled
+nxsdk_app23            1          disabled
+nxsdk_app24            1          disabled
+nxsdk_app25            1          disabled
+nxsdk_app26            1          disabled
+nxsdk_app27            1          disabled
+nxsdk_app28            1          disabled
+nxsdk_app29            1          disabled
+nxsdk_app3             1          disabled
+nxsdk_app30            1          disabled
+nxsdk_app31            1          disabled
+nxsdk_app32            1          disabled
+nxsdk_app4             1          disabled
+nxsdk_app5             1          disabled
+nxsdk_app6             1          disabled
+nxsdk_app7             1          disabled
+nxsdk_app8             1          disabled
+nxsdk_app9             1          disabled
+nxsdk_mgr              1          disabled
+ofm                    1          disabled
+onep                   1          disabled
+openconfig             1          disabled
+ospf                   1          enabled 
+ospf                   2          enabled(not-running)
+ospf                   3          enabled(not-running)
+ospf                   4          enabled(not-running)
+ospf                   5          enabled(not-running)
+ospf                   6          enabled(not-running)
+ospf                   7          enabled(not-running)
+ospf                   8          enabled(not-running)
+ospf                   9          enabled(not-running)
+ospf                   10         enabled(not-running)
+ospf                   11         enabled(not-running)
+ospf                   12         enabled(not-running)
+ospf                   13         enabled(not-running)
+ospf                   14         enabled(not-running)
+ospf                   15         enabled(not-running)
+ospf                   16         enabled(not-running)
+ospfv3                 1          disabled
+ospfv3                 2          disabled
+ospfv3                 3          disabled
+ospfv3                 4          disabled
+ospfv3                 5          disabled
+ospfv3                 6          disabled
+ospfv3                 7          disabled
+ospfv3                 8          disabled
+ospfv3                 9          disabled
+ospfv3                 10         disabled
+ospfv3                 11         disabled
+ospfv3                 12         disabled
+ospfv3                 13         disabled
+ospfv3                 14         disabled
+ospfv3                 15         disabled
+ospfv3                 16         disabled
+pbr                    1          disabled
+pim                    1          enabled 
+pim6                   1          disabled
+plb                    1          disabled
+poe                    1          disabled
+private-vlan           1          disabled
+privilege              1          disabled
+ptp                    1          disabled
+restconf               1          disabled
+rip                    1          disabled
+rip                    2          disabled
+rip                    3          disabled
+rip                    4          disabled
+rise                   1          disabled
+scheduler              1          disabled
+scpServer              1          disabled
+security-group         1          disabled
+segment-routing        1          disabled
+service-acceleration   1          disabled
+sflow                  1          disabled
+sftpServer             1          disabled
+sla_responder          1          disabled
+sla_sender             1          disabled
+sla_twamp              1          disabled
+smart-channel          1          disabled
+srte                   1          disabled
+srv6                   1          disabled
+sshServer              1          enabled 
+tacacs                 1          enabled 
+tap-aggregation        1          disabled
+telemetry              1          disabled
+telnetServer           1          disabled
+tun_enc_mgr            1          disabled
+tunnel                 1          disabled
+udld                   1          disabled
+vmfex                  1          disabled
+vmtracker              1          disabled
+vni                    1          disabled
+vnseg_vlan             1          disabled
+vpc                    1          disabled
+vrrp                   1          disabled
+vrrpv3                 1          disabled
+vtp                    1          disabled
+
+================================================================================
+COMMAND: show interface brief
+STATUS: completed
+================================================================================
+
+OUTPUT:
+--------------------------------------------------------------------------------
+Port   VRF          Status IP Address                              Speed    MTU
+--------------------------------------------------------------------------------
+mgmt0  --           up     192.168.2.146                           1000    1500    
+--------------------------------------------------------------------------------
+Ethernet        VLAN    Type Mode   Status  Reason                 Speed     Port
+Interface                                                                    Ch #
+--------------------------------------------------------------------------------
+Eth1/1          --      eth  routed up      none                     1000(D) --
+Eth1/2          --      eth  routed up      none                     1000(D) --
+Eth1/3          --      eth  routed up      none                     1000(D) --
+Eth1/4          1       eth  access up      none                     1000(D) --
+Eth1/5          1       eth  access up      none                     1000(D) --
+Eth1/6          1       eth  access up      none                     1000(D) --
+Eth1/7          1       eth  access up      none                     1000(D) --
+Eth1/8          1       eth  access down    Link not connected       auto(D) --
+Eth1/9          1       eth  access down    Link not connected       auto(D) --
+Eth1/10         1       eth  access down    Link not connected       auto(D) --
+Eth1/11         1       eth  access down    Link not connected       auto(D) --
+Eth1/12         1       eth  access down    Link not connected       auto(D) --
+Eth1/13         1       eth  access down    Link not connected       auto(D) --
+Eth1/14         1       eth  access down    Link not connected       auto(D) --
+Eth1/15         1       eth  access down    Link not connected       auto(D) --
+Eth1/16         1       eth  access down    Link not connected       auto(D) --
+Eth1/17         1       eth  access down    Link not connected       auto(D) --
+Eth1/18         1       eth  access down    Link not connected       auto(D) --
+Eth1/19         1       eth  access down    Link not connected       auto(D) --
+Eth1/20         1       eth  access down    Link not connected       auto(D) --
+Eth1/21         1       eth  access down    Link not connected       auto(D) --
+Eth1/22         1       eth  access down    Link not connected       auto(D) --
+Eth1/23         1       eth  access down    Link not connected       auto(D) --
+Eth1/24         1       eth  access down    Link not connected       auto(D) --
+Eth1/25         1       eth  access down    Link not connected       auto(D) --
+Eth1/26         1       eth  access down    Link not connected       auto(D) --
+Eth1/27         1       eth  access down    Link not connected       auto(D) --
+Eth1/28         1       eth  access down    Link not connected       auto(D) --
+Eth1/29         1       eth  access down    Link not connected       auto(D) --
+Eth1/30         1       eth  access down    Link not connected       auto(D) --
+Eth1/31         1       eth  access down    Link not connected       auto(D) --
+Eth1/32         1       eth  access down    Link not connected       auto(D) --
+Eth1/33         1       eth  access down    Link not connected       auto(D) --
+Eth1/34         1       eth  access down    Link not connected       auto(D) --
+Eth1/35         1       eth  access down    Link not connected       auto(D) --
+Eth1/36         1       eth  access down    Link not connected       auto(D) --
+Eth1/37         1       eth  access down    Link not connected       auto(D) --
+Eth1/38         1       eth  access down    Link not connected       auto(D) --
+Eth1/39         1       eth  access down    Link not connected       auto(D) --
+Eth1/40         1       eth  access down    Link not connected       auto(D) --
+Eth1/41         1       eth  access down    Link not connected       auto(D) --
+Eth1/42         1       eth  access down    Link not connected       auto(D) --
+Eth1/43         1       eth  access down    Link not connected       auto(D) --
+Eth1/44         1       eth  access down    Link not connected       auto(D) --
+Eth1/45         1       eth  access down    Link not connected       auto(D) --
+Eth1/46         1       eth  access down    Link not connected       auto(D) --
+Eth1/47         1       eth  access down    Link not connected       auto(D) --
+Eth1/48         1       eth  access down    Link not connected       auto(D) --
+Eth1/49         1       eth  access down    Link not connected       auto(D) --
+Eth1/50         1       eth  access down    Link not connected       auto(D) --
+Eth1/51         1       eth  access down    Link not connected       auto(D) --
+Eth1/52         1       eth  access down    Link not connected       auto(D) --
+Eth1/53         1       eth  access down    Link not connected       auto(D) --
+Eth1/54         1       eth  access down    Link not connected       auto(D) --
+Eth1/55         1       eth  access down    Link not connected       auto(D) --
+Eth1/56         1       eth  access down    Link not connected       auto(D) --
+Eth1/57         1       eth  access down    Link not connected       auto(D) --
+Eth1/58         1       eth  access down    Link not connected       auto(D) --
+Eth1/59         1       eth  access down    Link not connected       auto(D) --
+Eth1/60         1       eth  access down    Link not connected       auto(D) --
+Eth1/61         1       eth  access down    Link not connected       auto(D) --
+Eth1/62         1       eth  access down    Link not connected       auto(D) --
+Eth1/63         1       eth  access down    Link not connected       auto(D) --
+Eth1/64         1       eth  access down    Link not connected       auto(D) --
+
+--------------------------------------------------------------------------------
+Interface     Status     Description
+--------------------------------------------------------------------------------
+Lo0           up         Routing loopback interface
+Lo254         up         anycast-RP loopback interface
+
+================================================================================
+COMMAND: show ip interface brief vrf all
+STATUS: completed
+================================================================================
+
+OUTPUT:
+IP Interface Status for VRF "default"(1)
+Interface            IP Address      Interface Status
+Lo0                  20.2.0.4        protocol-up/link-up/admin-up       
+Lo254                20.254.254.1    protocol-up/link-up/admin-up       
+Eth1/1               20.4.0.1        protocol-up/link-up/admin-up       
+Eth1/2               20.4.0.5        protocol-up/link-up/admin-up       
+Eth1/3               20.4.0.9        protocol-up/link-up/admin-up       
+
+IP Interface Status for VRF "management"(2)
+Interface            IP Address      Interface Status
+mgmt0                192.168.2.146   protocol-up/link-up/admin-up       
+
+IP Interface Status for VRF "egress-loadbalance-resolution-"(3)
+Interface            IP Address      Interface Status
+
+================================================================================
+COMMAND: show vrf
+STATUS: completed
+================================================================================
+
+OUTPUT:
+VRF-Name                           VRF-ID State   Reason                        
+default                                 1 Up      --                            
+egress-loadbalance-resolution-          3 Up      --                            
+management                              2 Up      --
+

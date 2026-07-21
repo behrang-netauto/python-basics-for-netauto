@@ -1,118 +1,135 @@
 ---
-- name: "Prepare this evidence collection run"
+- name: "Prepare this evidence acquisition run"
   hosts: localhost
   gather_facts: false
 
+  vars_files:
+    - "{{ playbook_dir | dirname }}/collection_plan.yml"
+
   vars:
     generated_run_id: "{{ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') }}"
+    generated_started_at: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
     project_root: "{{ playbook_dir | dirname }}"
-    evidence_root_effective: "{{ evidence_root | default('evidence_pack') }}"
-    raw_evidence_dir_effective: "{{ raw_evidence_dir | default('raw') }}"
-    report_dir_effective: "{{ report_dir | default('reports') }}"
+    collection_reference_host: "{{ groups['nxos'] | default([]) | first | default('') }}"
+    evidence_root_effective: >-
+      {{ hostvars[collection_reference_host].evidence_root | default('evidence_pack') }}
+    raw_evidence_dir_effective: >-
+      {{ hostvars[collection_reference_host].raw_evidence_dir | default('raw') }}
+    structured_evidence_dir_effective: structured
+    report_dir_effective: >-
+      {{ hostvars[collection_reference_host].report_evidence_dir | default('reports') }}
 
   tasks:
-    - name: "Define the run ID and project path"
+    - name: "Define run metadata and project paths"
       ansible.builtin.set_fact:
         run_id_effective: "{{ run_id | default(generated_run_id, true) }}"
+        run_started_at: "{{ generated_started_at }}"
         project_root_effective: "{{ project_root }}"
         evidence_root_effective: "{{ evidence_root_effective }}"
         raw_evidence_dir_effective: "{{ raw_evidence_dir_effective }}"
+        structured_evidence_dir_effective: "{{ structured_evidence_dir_effective }}"
         report_dir_effective: "{{ report_dir_effective }}"
 
-    - name: "Create folders for this run"
+    - name: "Create the stage and output directories"
       ansible.builtin.file:
-        path: "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ item }}/{{ run_id_effective }}"
+        path: "{{ item }}"
         state: directory
         mode: "0755"
       loop:
-        - "{{ raw_evidence_dir_effective }}"
-        - "{{ report_dir_effective }}"
+        - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/baseline"
+        - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/traffic_probes"
+        - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/post_probe"
+        - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ structured_evidence_dir_effective }}/{{ run_id_effective }}"
+        - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ report_dir_effective }}/{{ run_id_effective }}"
 
-- name: "Collect read-only evidence from the NX-OS EVPN fabric"
+- name: "Collect baseline evidence from the NX-OS fabric"
   hosts: nxos
   gather_facts: false
   ignore_unreachable: true
 
+  vars_files:
+    - "{{ playbook_dir | dirname }}/collection_plan.yml"
+
   tasks:
-    - name: "Define the raw evidence path for this device"
+    - name: "Define baseline paths and command sets"
       ansible.builtin.set_fact:
         run_id_effective: "{{ hostvars['localhost']['run_id_effective'] }}"
         project_root_effective: "{{ hostvars['localhost']['project_root_effective'] }}"
         evidence_root_effective: "{{ hostvars['localhost']['evidence_root_effective'] }}"
         raw_evidence_dir_effective: "{{ hostvars['localhost']['raw_evidence_dir_effective'] }}"
-        device_raw_dir: >-
+        device_baseline_command_sets: {}
+        device_baseline_raw_dir: >-
           {{ hostvars['localhost']['project_root_effective'] }}/
           {{- hostvars['localhost']['evidence_root_effective'] }}/
           {{- hostvars['localhost']['raw_evidence_dir_effective'] }}/
-          {{- hostvars['localhost']['run_id_effective'] }}/
+          {{- hostvars['localhost']['run_id_effective'] }}/baseline/
           {{- inventory_hostname }}
 
-    - name: "Create the raw evidence directory for this device"
-      ansible.builtin.file:
-        path: "{{ device_raw_dir }}"
-        state: directory
-        mode: "0755"
-      delegate_to: localhost
-
-    - name: "Start with an empty command set for this device"
+    - name: "Select baseline command groups for this device role"
       ansible.builtin.set_fact:
-        device_command_sets: {}
-
-    - name: "Select command groups for this device role"
-      ansible.builtin.set_fact:
-        device_command_sets: >-
+        device_baseline_command_sets: >-
           {{
-            device_command_sets
+            device_baseline_command_sets
             | combine({item.key: item.value.commands})
           }}
-      loop: "{{ vxlan_evpn_command_sets | dict2items }}"
+      loop: >-
+        {{
+          (baseline_only_command_sets | combine(pre_post_comparison_command_sets))
+          | dict2items
+        }}
       loop_control:
         label: "{{ item.key }}"
       when: fabric_role in item.value.roles
 
-    - name: "Collect each NX-OS command independently"
+    - name: "Create the baseline directory for this device"
+      ansible.builtin.file:
+        path: "{{ device_baseline_raw_dir }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: "Collect each baseline command independently"
       cisco.nxos.nxos_command:
         commands:
           - "{{ item[1] }}"
-      loop: "{{ query('subelements', device_command_sets | dict2items, 'value') }}"
+      loop: "{{ query('subelements', device_baseline_command_sets | dict2items, 'value') }}"
       loop_control:
         label: "{{ item[0].key }} | {{ item[1] }}"
-      register: vxlan_evpn_command_results
+      register: baseline_command_results
       changed_when: false
       ignore_errors: true
 
-    - name: "Write one raw evidence file per command group"
+    - name: "Write one baseline evidence file per command group"
       ansible.builtin.copy:
-        dest: "{{ device_raw_dir }}/{{ item.key }}.txt"
+        dest: "{{ device_baseline_raw_dir }}/{{ item.key }}.txt"
         mode: "0644"
         content: |
           Host: {{ inventory_hostname }}
           Management IP: {{ ansible_host | default('not recorded') }}
           EVE node: {{ eve_node | default('not recorded') }}
           Role: {{ fabric_role | default('not recorded') }}
+          Stage: baseline
           Category: {{ item.key }}
           Run ID: {{ run_id_effective }}
 
           {% set group_status = namespace(failed=0) %}
-          {% for command_result in vxlan_evpn_command_results.results | default([]) %}
-          {% if command_result.item[0].key == item.key %}
-          {% if command_result.failed | default(false) %}
+          {% for command_result in baseline_command_results.results | default([]) %}
+          {% if command_result.item[0].key == item.key and command_result.failed | default(false) %}
           {% set group_status.failed = group_status.failed + 1 %}
           {% endif %}
-          {% endif %}
           {% endfor %}
-          Collection result: {% if group_status.failed > 0 %}completed-with-errors{% else %}completed{% endif %}
+          Collection result: {{ 'completed-with-errors' if group_status.failed > 0 else 'completed' }}
           Commands attempted: {{ item.value | length }}
           Commands failed: {{ group_status.failed }}
 
-          {% for command_result in vxlan_evpn_command_results.results | default([]) %}
+          {% for command_result in baseline_command_results.results | default([]) %}
           {% if command_result.item[0].key == item.key %}
           ================================================================================
           COMMAND: {{ command_result.item[1] }}
-          STATUS: {% if command_result.failed | default(false) %}failed{% else %}completed{% endif %}
+          STATUS: {{ 'failed' if command_result.failed | default(false) else 'completed' }}
           ================================================================================
 
-          {% if command_result.msg is defined %}
+          {% if command_result.msg is defined and command_result.msg %}
           MODULE MESSAGE:
           {{ command_result.msg }}
 
@@ -122,29 +139,451 @@
 
           {% endif %}
           {% endfor %}
-      loop: "{{ device_command_sets | dict2items }}"
+      loop: "{{ device_baseline_command_sets | dict2items }}"
       loop_control:
         label: "{{ item.key }}"
       delegate_to: localhost
 
-- name: "Render the fabric evidence report"
+- name: "Run controlled traffic probes from the Alpine endpoints"
+  hosts: traffic_endpoints
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars_files:
+    - "{{ playbook_dir | dirname }}/collection_plan.yml"
+
+  tasks:
+    - name: "Select probes sourced from this endpoint"
+      ansible.builtin.set_fact:
+        endpoint_probe_plan: >-
+          {{
+            traffic_probes.probes
+            | selectattr('source', 'equalto', inventory_hostname)
+            | list
+          }}
+        endpoint_probe_execution_plan: []
+        run_id_effective: "{{ hostvars['localhost']['run_id_effective'] }}"
+        traffic_probe_raw_dir: >-
+          {{ hostvars['localhost']['project_root_effective'] }}/
+          {{- hostvars['localhost']['evidence_root_effective'] }}/
+          {{- hostvars['localhost']['raw_evidence_dir_effective'] }}/
+          {{- hostvars['localhost']['run_id_effective'] }}/traffic_probes
+
+    - name: "Build the executable commands for each endpoint probe"
+      ansible.builtin.set_fact:
+        endpoint_probe_execution_plan: >-
+          {{
+            endpoint_probe_execution_plan
+            + [
+              item
+              | combine({
+                  'warmup_command': warmup_probe_command,
+                  'measurement_command': measurement_probe_command
+                })
+            ]
+          }}
+      vars:
+        warmup_probe_command: >-
+          ping
+          -I {{ probe_source_interface | quote }}
+          -c {{ traffic_probes.defaults.warmup_packets | int }}
+          -i {{ traffic_probes.defaults.interval_seconds | int }}
+          -W {{ traffic_probes.defaults.response_timeout_seconds | int }}
+          {{ item.destination | quote }}
+        measurement_probe_command: >-
+          ping
+          -I {{ probe_source_interface | quote }}
+          -c {{ traffic_probes.defaults.measurement_packets | int }}
+          -i {{ traffic_probes.defaults.interval_seconds | int }}
+          -W {{ traffic_probes.defaults.response_timeout_seconds | int }}
+          {{ item.destination | quote }}
+      loop: "{{ endpoint_probe_plan }}"
+      loop_control:
+        label: "{{ item.id }}"
+
+    - name: "Send unrecorded warmup traffic for ARP and MAC learning"
+      ansible.builtin.raw: "{{ item.warmup_command }}"
+      loop: "{{ endpoint_probe_execution_plan }}"
+      loop_control:
+        label: "{{ item.id }}"
+      changed_when: false
+      failed_when: false
+
+    - name: "Run and register the measured traffic probes"
+      ansible.builtin.raw: "{{ item.measurement_command }}"
+      loop: "{{ endpoint_probe_execution_plan }}"
+      loop_control:
+        label: "{{ item.id }}"
+      register: traffic_probe_measurement_results
+      changed_when: false
+      failed_when: false
+
+    - name: "Write one raw evidence file per measured probe"
+      ansible.builtin.copy:
+        dest: "{{ traffic_probe_raw_dir }}/{{ item.item.id }}.txt"
+        mode: "0644"
+        content: |
+          Probe ID: {{ item.item.id }}
+          Category: {{ item.item.category }}
+          Source: {{ inventory_hostname }}
+          Source management IP: {{ ansible_host | default('not recorded') }}
+          Source interface: {{ probe_source_interface | default('not recorded') }}
+          Destination: {{ item.item.destination }}
+          Stage: traffic_probes
+          Run ID: {{ run_id_effective }}
+          Execution status: {{ 'completed' if item.rc is defined else 'error' }}
+          Return code: {{ item.rc | default('not recorded') }}
+
+          ================================================================================
+          COMMAND
+          ================================================================================
+          {{ item.item.measurement_command }}
+
+          ================================================================================
+          STDOUT
+          ================================================================================
+          {{ item.stdout | default('NO STDOUT RETURNED') }}
+
+          ================================================================================
+          STDERR
+          ================================================================================
+          {{ item.stderr | default('') }}
+      loop: "{{ traffic_probe_measurement_results.results | default([]) }}"
+      loop_control:
+        label: "{{ item.item.id | default('unregistered probe') }}"
+      delegate_to: localhost
+      when: item.item is defined and item.item.id is defined
+
+- name: "Collect post-probe learning evidence from the NX-OS fabric"
+  hosts: nxos
+  gather_facts: false
+  ignore_unreachable: true
+
+  vars_files:
+    - "{{ playbook_dir | dirname }}/collection_plan.yml"
+
+  tasks:
+    - name: "Define post-probe paths and command sets"
+      ansible.builtin.set_fact:
+        run_id_effective: "{{ hostvars['localhost']['run_id_effective'] }}"
+        project_root_effective: "{{ hostvars['localhost']['project_root_effective'] }}"
+        evidence_root_effective: "{{ hostvars['localhost']['evidence_root_effective'] }}"
+        raw_evidence_dir_effective: "{{ hostvars['localhost']['raw_evidence_dir_effective'] }}"
+        device_post_probe_command_sets: {}
+        device_post_probe_raw_dir: >-
+          {{ hostvars['localhost']['project_root_effective'] }}/
+          {{- hostvars['localhost']['evidence_root_effective'] }}/
+          {{- hostvars['localhost']['raw_evidence_dir_effective'] }}/
+          {{- hostvars['localhost']['run_id_effective'] }}/post_probe/
+          {{- inventory_hostname }}
+
+    - name: "Select comparison command groups for this device role"
+      ansible.builtin.set_fact:
+        device_post_probe_command_sets: >-
+          {{
+            device_post_probe_command_sets
+            | combine({item.key: item.value.commands})
+          }}
+      loop: "{{ pre_post_comparison_command_sets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      when: fabric_role in item.value.roles
+
+    - name: "Create the post-probe directory for this device"
+      ansible.builtin.file:
+        path: "{{ device_post_probe_raw_dir }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      when: device_post_probe_command_sets | length > 0
+
+    - name: "Collect each post-probe command independently"
+      cisco.nxos.nxos_command:
+        commands:
+          - "{{ item[1] }}"
+      loop: "{{ query('subelements', device_post_probe_command_sets | dict2items, 'value') }}"
+      loop_control:
+        label: "{{ item[0].key }} | {{ item[1] }}"
+      register: post_probe_command_results
+      changed_when: false
+      ignore_errors: true
+      when: device_post_probe_command_sets | length > 0
+
+    - name: "Write one post-probe evidence file per comparison group"
+      ansible.builtin.copy:
+        dest: "{{ device_post_probe_raw_dir }}/{{ item.key }}.txt"
+        mode: "0644"
+        content: |
+          Host: {{ inventory_hostname }}
+          Management IP: {{ ansible_host | default('not recorded') }}
+          EVE node: {{ eve_node | default('not recorded') }}
+          Role: {{ fabric_role | default('not recorded') }}
+          Stage: post_probe
+          Category: {{ item.key }}
+          Run ID: {{ run_id_effective }}
+
+          {% set group_status = namespace(failed=0) %}
+          {% for command_result in post_probe_command_results.results | default([]) %}
+          {% if command_result.item[0].key == item.key and command_result.failed | default(false) %}
+          {% set group_status.failed = group_status.failed + 1 %}
+          {% endif %}
+          {% endfor %}
+          Collection result: {{ 'completed-with-errors' if group_status.failed > 0 else 'completed' }}
+          Commands attempted: {{ item.value | length }}
+          Commands failed: {{ group_status.failed }}
+
+          {% for command_result in post_probe_command_results.results | default([]) %}
+          {% if command_result.item[0].key == item.key %}
+          ================================================================================
+          COMMAND: {{ command_result.item[1] }}
+          STATUS: {{ 'failed' if command_result.failed | default(false) else 'completed' }}
+          ================================================================================
+
+          {% if command_result.msg is defined and command_result.msg %}
+          MODULE MESSAGE:
+          {{ command_result.msg }}
+
+          {% endif %}
+          OUTPUT:
+          {{ command_result.stdout[0] | default('NO OUTPUT RETURNED') }}
+
+          {% endif %}
+          {% endfor %}
+      loop: "{{ device_post_probe_command_sets | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      delegate_to: localhost
+
+- name: "Finalize the structured evidence and human-readable report"
   hosts: localhost
   gather_facts: false
 
+  vars_files:
+    - "{{ playbook_dir | dirname }}/collection_plan.yml"
+
   vars:
-    collected_hosts: "{{ groups['nxos'] | default([]) }}"
-    reference_nxos_host: "{{ collected_hosts[0] if collected_hosts | length > 0 else '' }}"
-    report_output_dir: "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ report_dir_effective }}/{{ run_id_effective }}"
+    collected_nxos_hosts: "{{ groups['nxos'] | default([]) }}"
+    traffic_endpoint_hosts: "{{ groups['traffic_endpoints'] | default([]) }}"
+    reference_nxos_host: >-
+      {{ collected_nxos_hosts[0] if collected_nxos_hosts | length > 0 else '' }}
+    structured_output_dir: >-
+      {{ project_root_effective }}/{{ evidence_root_effective }}/
+      {{- structured_evidence_dir_effective }}/{{ run_id_effective }}
+    report_output_dir: >-
+      {{ project_root_effective }}/{{ evidence_root_effective }}/
+      {{- report_dir_effective }}/{{ run_id_effective }}
 
   tasks:
-    - name: "Create the Markdown report"
+    - name: "Record the run completion time"
+      ansible.builtin.set_fact:
+        run_completed_at: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+
+    - name: "Build the structured collection results as JSON text"
+      ansible.builtin.set_fact:
+        collection_results_payload_json: >-
+          {%- set counts = namespace(
+            baseline_planned=0,
+            baseline_completed=0,
+            post_planned=0,
+            post_completed=0,
+            probes_planned=traffic_probes.probes | length,
+            probes_executed=0
+          ) -%}
+          {%- set baseline_devices = {} -%}
+          {%- set post_devices = {} -%}
+          {%- set probe_records = [] -%}
+          {%- set all_baseline_sets = baseline_only_command_sets | combine(pre_post_comparison_command_sets) -%}
+
+          {%- for host in collected_nxos_hosts -%}
+            {%- set hv = hostvars[host] -%}
+            {%- set host_role = hv.fabric_role | default('not recorded') -%}
+            {%- set host_counts = namespace(planned=0, completed=0) -%}
+            {%- set command_records = [] -%}
+            {%- for category, command_group in all_baseline_sets.items() -%}
+              {%- if host_role in command_group.roles -%}
+                {%- set host_counts.planned = host_counts.planned + command_group.commands | length -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- set baseline_registered = hv.baseline_command_results | default({}) -%}
+            {%- for result in baseline_registered.results | default([]) -%}
+              {%- set execution_status = 'error' if result.failed | default(false) else 'completed' -%}
+              {%- if execution_status == 'completed' -%}
+                {%- set host_counts.completed = host_counts.completed + 1 -%}
+              {%- endif -%}
+              {%- set stdout_value = result.stdout[0] if result.stdout is defined and result.stdout | length > 0 else '' -%}
+              {%- set _ = command_records.append({
+                'category': result.item[0].key,
+                'command': result.item[1],
+                'execution_status': execution_status,
+                'stdout': stdout_value,
+                'message': result.msg | default(''),
+                'raw_file': 'raw/' ~ run_id_effective ~ '/baseline/' ~ host ~ '/' ~ result.item[0].key ~ '.txt'
+              }) -%}
+            {%- endfor -%}
+            {%- set counts.baseline_planned = counts.baseline_planned + host_counts.planned -%}
+            {%- set counts.baseline_completed = counts.baseline_completed + host_counts.completed -%}
+            {%- set _ = baseline_devices.update({host: {
+              'role': host_role,
+              'management_ip': hv.ansible_host | default('not recorded'),
+              'collection_status': 'complete' if host_counts.completed == host_counts.planned else 'partial',
+              'planned_commands': host_counts.planned,
+              'completed_commands': host_counts.completed,
+              'commands': command_records
+            }}) -%}
+          {%- endfor -%}
+
+          {%- for probe in traffic_probes.probes -%}
+            {%- set source_hv = hostvars[probe.source] if probe.source in hostvars else {} -%}
+            {%- set match = namespace(plan=none, result=none) -%}
+            {%- for planned_probe in source_hv.endpoint_probe_execution_plan | default([]) -%}
+              {%- if planned_probe.id | default('') == probe.id -%}
+                {%- set match.plan = planned_probe -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- set probe_measurements = source_hv.traffic_probe_measurement_results | default({}) -%}
+            {%- for result in probe_measurements.results | default([]) -%}
+              {%- if result.item.id | default('') == probe.id -%}
+                {%- set match.result = result -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- set source_interface = source_hv.probe_source_interface | default('not recorded') -%}
+            {%- set probe_command = match.plan.measurement_command
+              if match.plan is not none and
+                 match.plan.measurement_command is defined
+              else none -%}
+            {%- if match.result is not none and match.result.rc is defined -%}
+              {%- set counts.probes_executed = counts.probes_executed + 1 -%}
+              {%- set _ = probe_records.append({
+                'probe_id': probe.id,
+                'category': probe.category,
+                'source': probe.source,
+                'source_interface': source_interface,
+                'destination': probe.destination,
+                'command': probe_command,
+                'execution_status': 'completed',
+                'return_code': match.result.rc,
+                'stdout': match.result.stdout | default(''),
+                'stderr': match.result.stderr | default(''),
+                'message': '',
+                'raw_file': 'raw/' ~ run_id_effective ~ '/traffic_probes/' ~ probe.id ~ '.txt'
+              }) -%}
+            {%- else -%}
+              {%- set _ = probe_records.append({
+                'probe_id': probe.id,
+                'category': probe.category,
+                'source': probe.source,
+                'source_interface': source_interface,
+                'destination': probe.destination,
+                'command': probe_command,
+                'execution_status': 'error',
+                'return_code': none,
+                'stdout': '',
+                'stderr': '',
+                'message': 'No measurement result was registered for this probe.',
+                'raw_file': none
+              }) -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- for host in collected_nxos_hosts -%}
+            {%- set hv = hostvars[host] -%}
+            {%- set host_role = hv.fabric_role | default('not recorded') -%}
+            {%- set host_counts = namespace(planned=0, completed=0) -%}
+            {%- set command_records = [] -%}
+            {%- for category, command_group in pre_post_comparison_command_sets.items() -%}
+              {%- if host_role in command_group.roles -%}
+                {%- set host_counts.planned = host_counts.planned + command_group.commands | length -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- set post_registered = hv.post_probe_command_results | default({}) -%}
+            {%- for result in post_registered.results | default([]) -%}
+              {%- set execution_status = 'error' if result.failed | default(false) else 'completed' -%}
+              {%- if execution_status == 'completed' -%}
+                {%- set host_counts.completed = host_counts.completed + 1 -%}
+              {%- endif -%}
+              {%- set stdout_value = result.stdout[0] if result.stdout is defined and result.stdout | length > 0 else '' -%}
+              {%- set _ = command_records.append({
+                'category': result.item[0].key,
+                'command': result.item[1],
+                'execution_status': execution_status,
+                'stdout': stdout_value,
+                'message': result.msg | default(''),
+                'raw_file': 'raw/' ~ run_id_effective ~ '/post_probe/' ~ host ~ '/' ~ result.item[0].key ~ '.txt'
+              }) -%}
+            {%- endfor -%}
+            {%- set counts.post_planned = counts.post_planned + host_counts.planned -%}
+            {%- set counts.post_completed = counts.post_completed + host_counts.completed -%}
+            {%- if host_counts.planned > 0 -%}
+              {%- set _ = post_devices.update({host: {
+                'role': host_role,
+                'management_ip': hv.ansible_host | default('not recorded'),
+                'collection_status': 'complete' if host_counts.completed == host_counts.planned else 'partial',
+                'planned_commands': host_counts.planned,
+                'completed_commands': host_counts.completed,
+                'commands': command_records
+              }}) -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- set baseline_errors = counts.baseline_planned - counts.baseline_completed -%}
+          {%- set probe_errors = counts.probes_planned - counts.probes_executed -%}
+          {%- set post_errors = counts.post_planned - counts.post_completed -%}
+          {%- set overall_status = 'complete' if baseline_errors == 0 and probe_errors == 0 and post_errors == 0 else 'partial' -%}
+          {{ {
+            'schema_version': 1,
+            'run': {
+              'run_id': run_id_effective,
+              'started_at': run_started_at,
+              'completed_at': run_completed_at,
+              'collection_status': overall_status,
+              'collection_plan': {
+                'file': 'collection_plan.yml',
+                'schema_version': schema_version
+              }
+            },
+            'fabric': {
+              'name': hostvars[reference_nxos_host].fabric_name | default('not recorded'),
+              'site': hostvars[reference_nxos_host].fabric_site | default('not recorded')
+            },
+            'summary': {
+              'baseline': {
+                'planned': counts.baseline_planned,
+                'completed': counts.baseline_completed,
+                'errors': baseline_errors
+              },
+              'traffic_probes': {
+                'planned': counts.probes_planned,
+                'executed': counts.probes_executed,
+                'execution_errors': probe_errors
+              },
+              'post_probe': {
+                'planned': counts.post_planned,
+                'completed': counts.post_completed,
+                'errors': post_errors
+              }
+            },
+            'baseline': {'devices': baseline_devices},
+            'traffic_probes': probe_records,
+            'post_probe': {'devices': post_devices},
+            'artifacts': {
+              'raw_root': 'raw/' ~ run_id_effective,
+              'structured_results': 'structured/' ~ run_id_effective ~ '/collection_results.json',
+              'report': 'reports/' ~ run_id_effective ~ '/evidence_report.md'
+            }
+          } | to_json }}
+
+    - name: "Convert the collection results to a native data structure"
+      ansible.builtin.set_fact:
+        collection_results_payload: "{{ collection_results_payload_json | from_json }}"
+
+    - name: "Write the machine-readable collection results"
+      ansible.builtin.copy:
+        dest: "{{ structured_output_dir }}/collection_results.json"
+        mode: "0644"
+        content: "{{ collection_results_payload | to_nice_json }}\n"
+
+    - name: "Render the human-readable evidence report"
       ansible.builtin.template:
         src: "{{ project_root_effective }}/templates/evidence_report.md.j2"
         dest: "{{ report_output_dir }}/evidence_report.md"
         mode: "0644"
-      vars:
-        fabric_name: "{{ hostvars[reference_nxos_host].fabric_name | default('not recorded') }}"
-        fabric_site: "{{ hostvars[reference_nxos_host].fabric_site | default('not recorded') }}"
-        evidence_root: "{{ evidence_root_effective }}"
-        raw_evidence_dir: "{{ raw_evidence_dir_effective }}"
-        vxlan_evpn_command_sets: "{{ hostvars[reference_nxos_host].vxlan_evpn_command_sets | default({}) }}"

@@ -1,0 +1,34 @@
+Probe ID: server2_to_server1
+Category: same_subnet
+Source: server2
+Source management IP: 192.168.2.14
+Source interface: eth0
+Destination: 10.10.10.10
+Stage: traffic_probes
+Run ID: 20260721T183549Z
+Execution status: completed
+Return code: 1
+
+================================================================================
+COMMAND
+================================================================================
+ping -I eth0 -c 5 -i 1 -W 2 10.10.10.10
+
+================================================================================
+STDOUT
+================================================================================
+PING 10.10.10.10 (10.10.10.10) from 10.10.10.11 eth0: 56(84) bytes of data.
+From 10.10.10.11 icmp_seq=1 Destination Host Unreachable
+ping: sendmsg: Host is unreachable
+From 10.10.10.11 icmp_seq=2 Destination Host Unreachable
+From 10.10.10.11 icmp_seq=3 Destination Host Unreachable
+
+--- 10.10.10.10 ping statistics ---
+5 packets transmitted, 0 received, +3 errors, 100% packet loss, time 4086ms
+pipe 3
+
+
+================================================================================
+STDERR
+================================================================================
+Shared connection to 192.168.2.14 closed.

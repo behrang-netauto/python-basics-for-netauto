@@ -1,40 +1,136 @@
 # NX-OS Fabric Automation Lab
 
-This project is a multi-phase network automation lab for an NX-OS VXLAN EVPN fabric.
+This project is a multi-phase automation lab built around an NX-OS VXLAN EVPN Multisite fabric in EVE-NG.
 
-The first phase is intentionally read-only. It connects to the existing NX-OS fabric, collects operational evidence, and writes raw command outputs plus a lightweight Markdown report.
+Phase 1 collects operational evidence from the fabric and runs controlled reachability probes from Linux endpoints. It does not decide whether the network is healthy. Its job is to capture a complete, reviewable record that can be assessed later without reconnecting to the lab.
 
-The goal is not to prove that the fabric is correct yet. The goal is to create a clean evidence baseline that can be reviewed before deeper validation, troubleshooting, or future API-based automation phases.
+No device configuration is changed during this phase.
 
-## Current phase
+## Lab scope
 
-Phase 1 focuses on:
+The topology includes:
 
-- connecting to NX-OS fabric nodes over SSH
-- collecting read-only operational command output
-- grouping evidence by device and command category
-- writing raw evidence files under `evidence_pack/raw/`
-- rendering a Markdown evidence report under `evidence_pack/reports/`
-- avoiding any configuration changes
+- Site 1 in AS 65001
+- Site 2 in AS 65002
+- a DCI node in AS 65003
+- two border gateways
+- three leaf switches and two spines
+- OSPF and PIM in the site underlays
+- BGP EVPN across the overlay and DCI
+- L2VNI and L3VNI tenant services
+- three Alpine Linux endpoints connected to the leaf switches
 
-No configuration is pushed by the current playbook.
+The endpoint addressing used by the probes is:
 
-## Lab context
+| Endpoint | Attached leaf | Data-plane address | Default gateway |
+|---|---|---|---|
+| `server1` | `leaf1` | `10.10.10.10/24` | `10.10.10.1` |
+| `server2` | `leaf2` | `10.10.10.11/24` | `10.10.10.1` |
+| `server3` | `leaf3` | `10.10.11.11/24` | `10.10.11.1` |
 
-This lab is based on a VXLAN EVPN multisite scenario.
+Each endpoint has a separate management interface for Ansible and uses `eth0` for test traffic.
 
-At a high level, the topology contains:
+## Phase 1 workflow
 
-- Site 1 / AS 65001
-- Site 2 / AS 65002
-- a DCI node / AS 65003
-- border gateways between the sites and the DCI layer
-- VXLAN EVPN overlay with L2VNI and L3VNI services
-- OSPF/PIM underlay inside the sites
-- BGP EVPN overlay
-- external WAN/router node in the EVE-NG lab environment
+The collection flow is:
 
-The current Ansible phase collects evidence from the NX-OS devices only.
+```text
+baseline collection
+        ↓
+endpoint traffic probes
+        ↓
+post-probe learning collection
+        ↓
+structured results and Markdown report
+```
+
+### Baseline collection
+
+NX-OS commands are selected by device role and executed independently. The baseline covers:
+
+- platform and interface state
+- OSPF/PIM underlay state
+- BGP EVPN control plane
+- BGP configuration
+- NVE peers and VNIs
+- tenant VLAN and routing state
+- Multisite and DCI state
+- MAC, ARP and EVPN Type-2 learning before the probes
+
+If an individual command fails, the remaining commands still run. The failure is preserved in the raw output and the run is marked `partial` instead of being silently discarded.
+
+### Endpoint traffic probes
+
+Nine reachability measurements are run from the Alpine endpoints:
+
+- three endpoint-to-gateway probes
+- two same-subnet probes, one in each direction
+- four inter-subnet probes, covering both directions between the sites
+
+Before each measurement, two preliminary packets are sent to populate ARP and MAC state. Only the following five-packet measurement is retained in the evidence pack.
+
+Each measured probe uses a fixed packet count:
+
+```bash
+ping -I <interface> -c 5 -i 1 -W 2 <destination>
+```
+
+The command, standard output, standard error and return code are stored for every probe. A return code of `1` is still a successfully collected measurement; it means the ping did not meet its success condition. A missing execution result is a collection error.
+
+### Post-probe collection
+
+After the traffic tests, the playbook collects the learning-related command groups again. Baseline and post-probe files use the same names, so changes in MAC, ARP and EVPN Type-2 state can be compared directly.
+
+For example:
+
+```bash
+diff -u \
+  evidence_pack/raw/<RUN_ID>/baseline/leaf1/tenant_learning.txt \
+  evidence_pack/raw/<RUN_ID>/post_probe/leaf1/tenant_learning.txt
+```
+
+## Collection plan
+
+`collection_plan.yml` is the declarative input for Phase 1. It defines:
+
+- baseline-only command groups
+- command groups collected both before and after the probes
+- probe defaults
+- probe source, destination and category
+
+The playbook combines this data with the inventory at runtime. The rendered command used for a probe is also the command written to the raw and structured artifacts.
+
+## Evidence layout
+
+Every execution receives a UTC run ID and writes all artifacts under that ID:
+
+```text
+evidence_pack/
+├── raw/
+│   └── <RUN_ID>/
+│       ├── baseline/
+│       │   └── <device>/
+│       │       └── <command_group>.txt
+│       ├── traffic_probes/
+│       │   └── <probe_id>.txt
+│       └── post_probe/
+│           └── <device>/
+│               └── <command_group>.txt
+├── structured/
+│   └── <RUN_ID>/
+│       └── collection_results.json
+└── reports/
+    └── <RUN_ID>/
+        └── evidence_report.md
+```
+
+The three output forms serve different purposes:
+
+- `raw/` preserves command-level evidence for review and troubleshooting.
+- `collection_results.json` provides a stable input for automated assessment.
+- `evidence_report.md` is a concise index of what ran, what was captured and where the files were written.
+
+The report describes collection completeness only. It does not translate operational state or probe results into `PASS` or `FAIL`.
 
 ## Project structure
 
@@ -42,6 +138,7 @@ The current Ansible phase collects evidence from the NX-OS devices only.
 11_nxos_fabric_automation_lab/
 ├── README.md
 ├── ansible.cfg
+├── collection_plan.yml
 ├── requirements.txt
 ├── requirements.yml
 ├── inventory/
@@ -49,63 +146,66 @@ The current Ansible phase collects evidence from the NX-OS devices only.
 │   └── group_vars/
 │       ├── all/
 │       │   └── vault.yml
-│       └── nxos.yml
+│       ├── nxos.yml
+│       └── traffic_endpoints.yml
 ├── playbooks/
 │   └── collect_vxlan_evpn_evidence.yml
 ├── templates/
 │   └── evidence_report.md.j2
 ├── evidence_pack/
 │   ├── raw/
+│   ├── structured/
 │   └── reports/
 └── docs/
     ├── topology_notes.md
     └── topology_multisite_lab.png
 ```
 
-## Inventory scope
+The external WAN router remains in the inventory for topology context but is outside the current collection scope.
 
-The inventory currently models the lab devices by role:
+## Running Phase 1
 
-- spines
-- border gateways
-- leaves
-- DCI node
-- external WAN router
-
-The playbook currently targets the `nxos` group.
-
-## Main playbook
-
-```text
-playbooks/collect_vxlan_evpn_evidence.yml
-```
-
-The playbook has three stages:
-
-1. Prepare the local evidence directories.
-2. Collect read-only command output from NX-OS devices.
-3. Render a Markdown evidence report.
-
-## Run the playbook
-
-From the project directory:
+From the project directory, activate the existing virtual environment and check the playbook syntax:
 
 ```bash
 source .venv-nxos-fabric/bin/activate
-ansible-playbook playbooks/collect_vxlan_evpn_evidence.yml
+
+ansible-playbook --syntax-check \
+  playbooks/collect_vxlan_evpn_evidence.yml
 ```
 
-The project `ansible.cfg` defines the inventory and vault password file, so the playbook command does not need an explicit `--vault-password-file` flag when it is executed from this directory.
+Run the collection:
 
-## Future phases
+```bash
+ansible-playbook \
+  playbooks/collect_vxlan_evpn_evidence.yml
+```
 
-Possible next phases:
+The project `ansible.cfg` supplies the inventory and Vault password file when the command is run from this directory.
 
-- review raw evidence and document fabric state
-- compare actual state with expected topology
-- add lightweight validation checks
-- add expected-state YAML data
-- add RESTCONF/NX-API read-only checks
-- add structured JSON reports
-- add tests for report rendering and inventory shape
-- add troubleshooting notes based on failed or partial fabric state
+To verify that the structured artifact contains valid JSON:
+
+```bash
+python -m json.tool \
+  evidence_pack/structured/<RUN_ID>/collection_results.json
+```
+
+`json.tool` checks JSON syntax and prints the document in a readable form. It does not validate the network state or the meaning of the collected values.
+
+## Phase 2
+
+Phase 2 will consume the Phase 1 artifacts and compare the observed state with an `expected_state.yml` definition. The first assessment checks are planned for:
+
+- OSPF neighbors
+- BGP EVPN sessions
+- NVE state
+- VNI state
+- EVPN route types
+- endpoint learning
+- endpoint reachability
+
+The assessment layer will assign statuses such as `PASS`, `FAIL`, `WARNING`, `NOT TESTED` and `NOT APPLICABLE`. Keeping assessment separate from collection means a fabric can produce a complete evidence run even when some of its control-plane or data-plane checks fail.
+
+## Later work
+
+The next major stage after automated assessment is configuration compliance and controlled remediation. That stage will introduce expected configuration, dry-run checks, backups, rollback and before/after evidence collection. It is deliberately outside the current read-only workflow.

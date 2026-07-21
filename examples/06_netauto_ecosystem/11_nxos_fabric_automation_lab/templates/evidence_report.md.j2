@@ -1,101 +1,122 @@
 # NX-OS Fabric Evidence Report
 
-{% set total_hosts = collected_hosts | length %}
-{% set collected = namespace(count=0) %}
-{% for host in collected_hosts %}
-{% if hostvars[host].vxlan_evpn_command_results is defined %}
-{% set collected.count = collected.count + 1 %}
-{% endif %}
-{% endfor %}
+## 1. Run overview
 
-## 1. What this report is
+This report documents a non-configuring evidence acquisition run against the
+NX-OS VXLAN EVPN fabric. It combines read-only device commands with controlled
+active reachability probes. No device configuration changes were applied.
 
-This report documents a read-only evidence collection run against the NX-OS EVPN fabric.
+| Item | Value |
+|---|---|
+| Fabric | `{{ collection_results_payload.fabric.name }}` |
+| Site | `{{ collection_results_payload.fabric.site }}` |
+| Run ID | `{{ collection_results_payload.run.run_id }}` |
+| Started | `{{ collection_results_payload.run.started_at }}` |
+| Completed | `{{ collection_results_payload.run.completed_at }}` |
+| Collection status | **{{ collection_results_payload.run.collection_status }}** |
 
-The playbook collected operational command output from the devices in scope and stored the raw evidence files for later review.  
-No configuration changes were applied by this playbook.
-
-**Fabric:** `{{ fabric_name | default('not recorded') }}`  
-**Site:** `{{ fabric_site | default('not recorded') }}`  
-**Run ID:** `{{ run_id_effective }}`  
-**Generated from:** Ansible evidence collection
+`Collection status` describes evidence completeness only. It is not a verdict
+about fabric health.
 
 ---
 
 ## 2. Collection summary
 
-This run included **{{ total_hosts }}** device(s).  
-Collection results were registered for **{{ collected.count }}** device(s).
+| Stage | Planned | Completed or executed | Collection errors |
+|---|---:|---:|---:|
+| Baseline | {{ collection_results_payload.summary.baseline.planned }} | {{ collection_results_payload.summary.baseline.completed }} | {{ collection_results_payload.summary.baseline.errors }} |
+| Traffic probes | {{ collection_results_payload.summary.traffic_probes.planned }} | {{ collection_results_payload.summary.traffic_probes.executed }} | {{ collection_results_payload.summary.traffic_probes.execution_errors }} |
+| Post-probe | {{ collection_results_payload.summary.post_probe.planned }} | {{ collection_results_payload.summary.post_probe.completed }} | {{ collection_results_payload.summary.post_probe.errors }} |
 
-| Item | Value |
+The measured probe output is retained as evidence. Warmup traffic may be sent
+before measurement to populate ARP and MAC learning state, but its output is
+intentionally not stored.
+
+---
+
+## 3. Baseline evidence
+
+The baseline stage contains platform, underlay, EVPN, VXLAN, tenant, Multisite,
+DCI, and pre-traffic learning evidence selected according to device role.
+
+| Device | Role | Management IP | Commands | Result | Raw path |
+|---|---|---|---:|---|---|
+{% for device, result in collection_results_payload.baseline.devices.items() %}
+| `{{ device }}` | {{ result.role }} | `{{ result.management_ip }}` | {{ result.completed_commands }}/{{ result.planned_commands }} | {{ result.collection_status }} | `raw/{{ collection_results_payload.run.run_id }}/baseline/{{ device }}/` |
+{% endfor %}
+
+---
+
+## 4. Measured traffic probes
+
+The probe return code and command output are recorded as observations. This
+report does not translate them into `PASS`, `FAIL`, or `NOT TESTED`; that belongs
+to the assessment phase.
+
+| Probe | Category | Source | Source interface | Destination | Execution | Return code | Raw file |
+|---|---|---|---|---|---|---:|---|
+{% for probe in collection_results_payload.traffic_probes %}
+| `{{ probe.probe_id }}` | {{ probe.category }} | `{{ probe.source }}` | `{{ probe.source_interface }}` | `{{ probe.destination }}` | {{ probe.execution_status }} | {{ probe.return_code if probe.return_code is not none else 'n/a' }} | {% if probe.raw_file %}`{{ probe.raw_file }}`{% else %}not written{% endif %} |
+{% endfor %}
+
+Important distinction:
+
+- A measured Ping that returns packet loss is still a successfully collected observation.
+- A probe without a registered measurement is a collection error.
+
+---
+
+## 5. Post-probe evidence
+
+Post-probe collection repeats the same comparison command groups and filenames
+used in the baseline stage. The separate stage directories prevent overwrite
+and make direct file comparison possible.
+
+| Device | Role | Management IP | Commands | Result | Raw path |
+|---|---|---|---:|---|---|
+{% for device, result in collection_results_payload.post_probe.devices.items() %}
+| `{{ device }}` | {{ result.role }} | `{{ result.management_ip }}` | {{ result.completed_commands }}/{{ result.planned_commands }} | {{ result.collection_status }} | `raw/{{ collection_results_payload.run.run_id }}/post_probe/{{ device }}/` |
+{% endfor %}
+
+Example comparison:
+
+```bash
+diff -u \
+  evidence_pack/raw/{{ collection_results_payload.run.run_id }}/baseline/leaf1/tenant_learning.txt \
+  evidence_pack/raw/{{ collection_results_payload.run.run_id }}/post_probe/leaf1/tenant_learning.txt
+```
+
+---
+
+## 6. Artifact locations
+
+| Artifact | Path |
 |---|---|
-| Collection type | Read-only |
-| Configuration changes | None |
-| Raw evidence root | `{{ evidence_root }}/{{ raw_evidence_dir }}/{{ run_id_effective }}/` |
-| Report purpose | Evidence index and collection overview |
+| Raw evidence | `evidence_pack/{{ collection_results_payload.artifacts.raw_root }}/` |
+| Structured results | `evidence_pack/{{ collection_results_payload.artifacts.structured_results }}` |
+| This report | `evidence_pack/{{ collection_results_payload.artifacts.report }}` |
 
 ---
 
-## 3. Devices in scope
+## 7. Collection plan reference
 
-| Device | Role | Management IP | EVE node | Result |
-|---|---|---:|---|---|
-{% for host in collected_hosts %}
-{% set hv = hostvars[host] %}
-{% if hv.vxlan_evpn_command_results is defined %}
-{% set collection_status = 'collected' %}
-{% else %}
-{% set collection_status = 'not collected' %}
-{% endif %}
-| `{{ host }}` | {{ hv.fabric_role | default('not recorded') }} | `{{ hv.ansible_host | default('not recorded') }}` | {{ hv.eve_node | default('not recorded') }} | {{ collection_status }} |
+### Baseline-only command groups
+
+{% for category, command_group in baseline_only_command_sets.items() %}
+#### {{ category }}
+
+**Roles:** `{{ command_group.roles | join(', ') }}`
+
+{% for command in command_group.commands %}
+- `{{ command }}`
 {% endfor %}
-
----
-
-## 4. Per-device collection notes
-
-{% for host in collected_hosts %}
-{% set hv = hostvars[host] %}
-
-### {{ host }}
-
-**Role:** {{ hv.fabric_role | default('not recorded') }}  
-**Management IP:** `{{ hv.ansible_host | default('not recorded') }}`  
-**EVE node:** {{ hv.eve_node | default('not recorded') }}  
-**Raw evidence path:** `{{ evidence_root }}/{{ raw_evidence_dir }}/{{ run_id_effective }}/{{ host }}/`
-
-{% if hv.vxlan_evpn_command_results is defined %}
-The playbook registered command output for this device in the following category group(s):
-
-| Category | Result | Commands attempted |
-|---|---|---:|
-{% for category, commands in hv.device_command_sets.items() %}
-{% set category_status = namespace(failed=0) %}
-{% for result in hv.vxlan_evpn_command_results.results | default([]) %}
-{% if result.item[0].key == category and result.failed | default(false) %}
-{% set category_status.failed = category_status.failed + 1 %}
-{% endif %}
-{% endfor %}
-| `{{ category }}` | {% if category_status.failed > 0 %}completed with errors{% else %}collected{% endif %} | {{ commands | length }} |
-{% endfor %}
-
-{% else %}
-No command results were registered for this device in this run.
-
-This usually means the device was not reached by the playbook, was not included in the active inventory scope, or the collection task did not produce a registered result.
-{% endif %}
 
 {% endfor %}
 
----
+### Pre/post comparison command groups
 
-## 5. Command reference
-
-The following command groups were used by the playbook.  
-This section is a reference only; the raw command outputs are stored under the evidence directory.
-
-{% for category, command_group in vxlan_evpn_command_sets.items() %}
-### {{ category }}
+{% for category, command_group in pre_post_comparison_command_sets.items() %}
+#### {{ category }}
 
 **Roles:** `{{ command_group.roles | join(', ') }}`
 
@@ -107,11 +128,10 @@ This section is a reference only; the raw command outputs are stored under the e
 
 ---
 
-## 6. Limits of this report
+## 8. Report limits
 
-This report is an evidence index, not a validation verdict.
-
-It confirms which devices were included in the collection run, which command groups were attempted, and where the raw outputs were saved.  
-It does not by itself prove that the EVPN control plane, VXLAN data plane, tenant reachability, or fabric redundancy are fully correct.
-
-Further interpretation should be done by reviewing the raw command outputs and, if needed, adding manual observations in a separate analysis note.
+This report is an evidence index and collection overview. It confirms what was
+attempted, what was captured, and where the artifacts were written. It does not
+determine whether OSPF, BGP EVPN, NVE/VNI state, endpoint learning, or end-to-end
+reachability are correct. Deterministic parsing and expected-state comparison
+belong to the subsequent assessment phase.

@@ -61,6 +61,29 @@ all:
                   fabric_role: dci
                   mgmt_interface: mgmt0
 
+    traffic_endpoints:
+      hosts:
+        server1:
+          ansible_host: 192.168.2.13
+          probe_source_interface: eth0
+          endpoint_ip: 10.10.10.10
+          default_gateway: 10.10.10.1
+          attached_device: leaf1
+
+        server2:
+          ansible_host: 192.168.2.14
+          probe_source_interface: eth0
+          endpoint_ip: 10.10.10.11
+          default_gateway: 10.10.10.1
+          attached_device: leaf2
+
+        server3:
+          ansible_host: 192.168.2.15
+          probe_source_interface: eth0
+          endpoint_ip: 10.10.11.11
+          default_gateway: 10.10.11.1
+          attached_device: leaf3
+
     external_nodes:
       children:
         wan_routers:

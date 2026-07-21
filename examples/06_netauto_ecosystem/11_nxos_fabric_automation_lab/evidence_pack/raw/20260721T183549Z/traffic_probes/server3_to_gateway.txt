@@ -1,0 +1,35 @@
+Probe ID: server3_to_gateway
+Category: gateway
+Source: server3
+Source management IP: 192.168.2.15
+Source interface: eth0
+Destination: 10.10.11.1
+Stage: traffic_probes
+Run ID: 20260721T183549Z
+Execution status: completed
+Return code: 0
+
+================================================================================
+COMMAND
+================================================================================
+ping -I eth0 -c 5 -i 1 -W 2 10.10.11.1
+
+================================================================================
+STDOUT
+================================================================================
+PING 10.10.11.1 (10.10.11.1) from 10.10.11.11 eth0: 56(84) bytes of data.
+64 bytes from 10.10.11.1: icmp_seq=1 ttl=255 time=2.47 ms
+64 bytes from 10.10.11.1: icmp_seq=2 ttl=255 time=3.41 ms
+64 bytes from 10.10.11.1: icmp_seq=3 ttl=255 time=3.81 ms
+64 bytes from 10.10.11.1: icmp_seq=4 ttl=255 time=6.94 ms
+64 bytes from 10.10.11.1: icmp_seq=5 ttl=255 time=4.04 ms
+
+--- 10.10.11.1 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4007ms
+rtt min/avg/max/mdev = 2.473/4.132/6.936/1.500 ms
+
+
+================================================================================
+STDERR
+================================================================================
+Shared connection to 192.168.2.15 closed.

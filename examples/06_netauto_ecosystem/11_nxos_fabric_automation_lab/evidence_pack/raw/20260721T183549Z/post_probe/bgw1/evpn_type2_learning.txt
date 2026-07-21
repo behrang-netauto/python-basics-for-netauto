@@ -1,0 +1,150 @@
+Host: bgw1
+Management IP: 192.168.2.141
+EVE node: NXOS2
+Role: border_gateway
+Stage: post_probe
+Category: evpn_type2_learning
+Run ID: 20260721T183549Z
+
+Collection result: completed
+Commands attempted: 1
+Commands failed: 0
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 2
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP routing table information for VRF default, address family L2VPN EVPN
+Route Distinguisher: 65002:30001
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[0]:[0.0.0.0]/216, version 30
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop
+             Imported to 1 destination(s)
+             Imported paths list: L2-30001
+  AS-Path: 65003 65002 , path sourced external to AS
+    10.10.0.1 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001
+      Extcommunity: RT:65001:30001 ENCAP:8 Site-ID:0:65002
+
+  Path-id 1 not advertised to any peer
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272, version 27
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop
+             Imported to 3 destination(s)
+             Imported paths list: myvrf_50000 L3-50000 L2-30001
+  AS-Path: 65003 65002 , path sourced external to AS
+    10.10.0.1 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001 50000
+      Extcommunity: RT:65001:30001 RT:65001:50000 ENCAP:8 Site-ID:0:65002
+          Router MAC:0200.0a0a.0001
+
+  Path-id 1 not advertised to any peer
+
+Route Distinguisher: 10.2.0.1:33017    (L2VNI 30001)
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[0]:[0.0.0.0]/216, version 31
+Paths: (1 available, best #1)
+Flags: (0x000212) (high32 0x000400) on xmit-list, is in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop, in rib
+             Imported from 65002:30001:[2]:[0]:[0]:[48]:[0050.0000.0e00]:[0]:[0.0.0.0]/216 
+  AS-Path: 65003 65002 , path sourced external to AS
+    10.10.0.1 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001
+      Extcommunity: RT:65001:30001 ENCAP:8 Site-ID:0:65002
+
+  Path-id 1 (dual) advertised to peers:
+    10.2.0.3       
+BGP routing table entry for [2]:[0]:[0]:[48]:[5002.0000.1b08]:[0]:[0.0.0.0]/216, version 2
+Paths: (1 available, best #1)
+Flags: (0x000102) (high32 0x008000) on xmit-list, is not in l2rib/evpn
+
+  Advertised path-id 1
+  Path type: local, path is valid, is best path, no labeled nexthop
+  AS-Path: NONE, path locally originated
+    10.3.0.2 (metric 0) from 0.0.0.0 (10.2.0.1)
+      Origin IGP, MED not set, localpref 100, weight 32768
+      Received label 30001
+      Extcommunity: RT:65001:30001 SOO:10.2.0.1:512 ENCAP:8
+          MAC Mobility Sequence:01:0
+
+  Path-id 1 advertised to peers:
+    10.2.0.3           100.100.100.100
+BGP routing table entry for [2]:[0]:[0]:[48]:[5011.0000.1b08]:[0]:[0.0.0.0]/216, version 8
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 0x000400) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop
+             Imported from 20.2.0.1:33017:[2]:[0]:[0]:[48]:[5011.0000.1b08]:[0]:[0.0.0.0]/216 
+  AS-Path: 65003 65002 , path sourced external to AS
+    20.3.0.2 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001
+      Extcommunity: RT:65001:30001 SOO:20.2.0.1:512 ENCAP:8 Site-ID:0:65002
+          MAC Mobility Sequence:01:0
+
+  Path-id 1 (dual) not advertised to any peer
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272, version 28
+Paths: (1 available, best #1)
+Flags: (0x000212) (high32 0x000400) on xmit-list, is in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop, in rib
+             Imported from 65002:30001:[2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272 
+  AS-Path: 65003 65002 , path sourced external to AS
+    10.10.0.1 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001 50000
+      Extcommunity: RT:65001:30001 RT:65001:50000 ENCAP:8 Site-ID:0:65002
+          Router MAC:0200.0a0a.0001
+
+  Path-id 1 (dual) advertised to peers:
+    10.2.0.3       
+
+Route Distinguisher: 20.2.0.1:33017
+BGP routing table entry for [2]:[0]:[0]:[48]:[5011.0000.1b08]:[0]:[0.0.0.0]/216, version 6
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop
+             Imported to 1 destination(s)
+             Imported paths list: L2-30001
+  AS-Path: 65003 65002 , path sourced external to AS
+    20.3.0.2 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001
+      Extcommunity: RT:65001:30001 SOO:20.2.0.1:512 ENCAP:8 Site-ID:0:65002
+          MAC Mobility Sequence:01:0
+
+  Path-id 1 not advertised to any peer
+
+Route Distinguisher: 10.2.0.1:4    (L3VNI 50000)
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272, version 29
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 0x000400) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop
+             Imported from 65002:30001:[2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272 
+  AS-Path: 65003 65002 , path sourced external to AS
+    10.10.0.1 (metric 0) from 100.100.100.100 (100.100.100.100)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001 50000
+      Extcommunity: RT:65001:30001 RT:65001:50000 ENCAP:8 Site-ID:0:65002
+          Router MAC:0200.0a0a.0001
+
+  Path-id 1 (dual) not advertised to any peer
+

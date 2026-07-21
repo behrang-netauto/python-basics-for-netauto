@@ -1,0 +1,43 @@
+Host: spine2
+Management IP: 192.168.2.146
+EVE node: NXOS18
+Role: spine
+Stage: baseline
+Category: bgp_configuration
+Run ID: 20260721T183549Z
+
+Collection result: completed
+Commands attempted: 1
+Commands failed: 0
+
+================================================================================
+COMMAND: show running-config | section bgp
+STATUS: completed
+================================================================================
+
+OUTPUT:
+feature bgp
+router bgp 65002
+  router-id 20.2.0.4
+  neighbor 20.2.0.1
+    remote-as 65002
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      route-reflector-client
+  neighbor 20.2.0.2
+    remote-as 65002
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      route-reflector-client
+  neighbor 20.2.0.3
+    remote-as 65002
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      route-reflector-client
+
