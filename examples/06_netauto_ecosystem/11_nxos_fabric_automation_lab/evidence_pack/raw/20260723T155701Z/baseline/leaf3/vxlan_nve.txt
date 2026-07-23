@@ -1,0 +1,77 @@
+Host: leaf3
+Management IP: 192.168.2.144
+EVE node: NXOS6
+Role: leaf
+Stage: baseline
+Category: vxlan_nve
+Run ID: 20260723T155701Z
+
+Collection result: completed
+Commands attempted: 4
+Commands failed: 0
+
+================================================================================
+COMMAND: show nve peers
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Interface Peer-IP                                 State LearnType Uptime   Router-Mac       
+--------- --------------------------------------  ----- --------- -------- -----------------
+nve1      20.3.0.1                                Up    CP        00:36:33 5005.0000.1b08
+
+================================================================================
+COMMAND: show nve vni
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Codes: CP - Control Plane        DP - Data Plane          
+       UC - Unconfigured         SA - Suppress ARP        
+       S-ND - Suppress ND        
+       SU - Suppress Unknown Unicast 
+       Xconn - Crossconnect      
+       MS-IR - Multisite Ingress Replication 
+       HYB - Hybrid IRB mode
+    
+Interface VNI      Multicast-group   State Mode Type [BD/VRF]      Flags
+--------- -------- ----------------- ----- ---- ------------------ -----
+nve1      30000    239.1.1.0         Up    CP   L2 [300]                
+nve1      50000    n/a               Up    CP   L3 [myvrf_50000]
+
+================================================================================
+COMMAND: show interface nve1
+STATUS: completed
+================================================================================
+
+OUTPUT:
+nve1 is up
+admin state is up,  Hardware: NVE
+  MTU 9216 bytes
+  Encapsulation VXLAN
+  Auto-mdix is turned off
+  RX
+    ucast: 14 pkts, 1372 bytes - mcast: 0 pkts, 0 bytes
+  TX
+    ucast: 14 pkts, 2072 bytes - mcast: 0 pkts, 0 bytes
+
+================================================================================
+COMMAND: show running-config interface nve1
+STATUS: completed
+================================================================================
+
+OUTPUT:
+!Command: show running-config interface nve1
+!No configuration change since last restart
+!Time: Thu Jul 23 16:00:02 2026
+
+version 10.5(3) Bios:version  
+
+interface nve1
+  no shutdown
+  host-reachability protocol bgp
+  source-interface loopback1
+  member vni 30000
+    mcast-group 239.1.1.0
+  member vni 50000 associate-vrf
+

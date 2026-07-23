@@ -4,7 +4,8 @@
 
 This report documents a non-configuring evidence acquisition run against the
 NX-OS VXLAN EVPN fabric. It combines read-only device commands with controlled
-active reachability probes. No device configuration changes were applied.
+active reachability probes and running-configuration snapshots. No device
+configuration changes were applied.
 
 | Item | Value |
 |---|---|
@@ -25,6 +26,7 @@ about fabric health.
 | Stage | Planned | Completed or executed | Collection errors |
 |---|---:|---:|---:|
 | Baseline | {{ collection_results_payload.summary.baseline.planned }} | {{ collection_results_payload.summary.baseline.completed }} | {{ collection_results_payload.summary.baseline.errors }} |
+| Configuration snapshots | {{ collection_results_payload.summary.configuration_snapshots.planned }} | {{ collection_results_payload.summary.configuration_snapshots.collected }} | {{ collection_results_payload.summary.configuration_snapshots.errors }} |
 | Traffic probes | {{ collection_results_payload.summary.traffic_probes.planned }} | {{ collection_results_payload.summary.traffic_probes.executed }} | {{ collection_results_payload.summary.traffic_probes.execution_errors }} |
 | Post-probe | {{ collection_results_payload.summary.post_probe.planned }} | {{ collection_results_payload.summary.post_probe.completed }} | {{ collection_results_payload.summary.post_probe.errors }} |
 
@@ -47,7 +49,20 @@ DCI, and pre-traffic learning evidence selected according to device role.
 
 ---
 
-## 4. Measured traffic probes
+## 4. Running-configuration snapshots
+
+Each NX-OS device has a plain-text running-configuration snapshot for the
+subsequent configuration compliance assessment.
+
+| Device | Role | Management IP | Result | Raw file |
+|---|---|---|---|---|
+{% for device, result in collection_results_payload.configuration_snapshots.devices.items() %}
+| `{{ device }}` | {{ result.role }} | `{{ result.management_ip }}` | {{ result.collection_status }} | {% if result.raw_file %}`{{ result.raw_file }}`{% else %}not written{% endif %} |
+{% endfor %}
+
+---
+
+## 5. Measured traffic probes
 
 The probe return code and command output are recorded as observations. This
 report does not translate them into `PASS`, `FAIL`, or `NOT TESTED`; that belongs
@@ -66,7 +81,7 @@ Important distinction:
 
 ---
 
-## 5. Post-probe evidence
+## 6. Post-probe evidence
 
 Post-probe collection repeats the same comparison command groups and filenames
 used in the baseline stage. The separate stage directories prevent overwrite
@@ -88,7 +103,7 @@ diff -u \
 
 ---
 
-## 6. Artifact locations
+## 7. Artifact locations
 
 | Artifact | Path |
 |---|---|
@@ -98,7 +113,7 @@ diff -u \
 
 ---
 
-## 7. Collection plan reference
+## 8. Collection plan reference
 
 ### Baseline-only command groups
 
@@ -128,7 +143,7 @@ diff -u \
 
 ---
 
-## 8. Report limits
+## 9. Report limits
 
 This report is an evidence index and collection overview. It confirms what was
 attempted, what was captured, and where the artifacts were written. It does not

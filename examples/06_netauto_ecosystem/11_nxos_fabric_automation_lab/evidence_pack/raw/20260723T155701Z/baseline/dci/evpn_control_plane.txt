@@ -1,0 +1,123 @@
+Host: dci
+Management IP: 192.168.2.147
+EVE node: NXOS19
+Role: dci
+Stage: baseline
+Category: evpn_control_plane
+Run ID: 20260723T155701Z
+
+Collection result: completed
+Commands attempted: 4
+Commands failed: 0
+
+================================================================================
+COMMAND: show bgp l2vpn evpn summary
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP summary information for VRF default, address family L2VPN EVPN
+BGP router identifier 100.100.100.100, local AS number 65003
+BGP table version is 20, L2VPN EVPN config peers 2, capable peers 2
+8 network entries and 8 paths using 2912 bytes of memory
+BGP attribute entries [8/2944], BGP AS path entries [2/12]
+BGP community entries [0/0], BGP clusterlist entries [0/0]
+
+Neighbor        V    AS    MsgRcvd    MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+10.2.0.1        4 65001        120        120       20    0    0 01:51:38 3         
+20.2.0.1        4 65002        129        120       20    0    0 01:51:17 5         
+
+Neighbor        T    AS Type-1     Type-2     Type-3     Type-4     Type-5     Type-6     Type-7     Type-8     Type-12   
+10.2.0.1        I 65001 0          1          1          1          0          0          0          0          0         
+20.2.0.1        I 65002 0          3          1          1          0          0          0          0          0
+
+================================================================================
+COMMAND: show bgp l2vpn evpn
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP routing table information for VRF default, address family L2VPN EVPN
+BGP table version is 20, Local Router ID is 100.100.100.100
+Status: s-suppressed, x-deleted, S-stale, d-dampened, h-history, *-valid, >-best
+Path type: i-internal, e-external, c-confed, l-local, a-aggregate, r-redist, I-injected
+Origin codes: i - IGP, e - EGP, ? - incomplete, | - multipath, & - backup, 2 - best2
+
+   Network            Next Hop            Metric     LocPrf     Weight Path
+Route Distinguisher: 65002:30001
+*>e[2]:[0]:[0]:[48]:[0050.0000.0e00]:[0]:[0.0.0.0]/216
+                      10.10.0.1             2000                     0 65002 i
+*>e[2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272
+                      10.10.0.1             2000                     0 65002 i
+
+Route Distinguisher: 10.2.0.1:27001
+*>e[4]:[0300.0000.00fd.e900.0309]:[32]:[10.3.0.2]/136
+                      10.3.0.2                                       0 65001 i
+
+Route Distinguisher: 10.2.0.1:33017
+*>e[2]:[0]:[0]:[48]:[5002.0000.1b08]:[0]:[0.0.0.0]/216
+                      10.3.0.2                                       0 65001 i
+*>e[3]:[0]:[32]:[10.3.0.2]/88
+                      10.3.0.2                                       0 65001 i
+
+Route Distinguisher: 20.2.0.1:27001
+*>e[4]:[0300.0000.00fd.ea00.0309]:[32]:[20.3.0.2]/136
+                      20.3.0.2                                       0 65002 i
+
+Route Distinguisher: 20.2.0.1:33017
+*>e[2]:[0]:[0]:[48]:[5011.0000.1b08]:[0]:[0.0.0.0]/216
+                      20.3.0.2                                       0 65002 i
+*>e[3]:[0]:[32]:[20.3.0.2]/88
+                      20.3.0.2                                       0 65002 i
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 3
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP routing table information for VRF default, address family L2VPN EVPN
+Route Distinguisher: 10.2.0.1:33017
+BGP routing table entry for [3]:[0]:[32]:[10.3.0.2]/88, version 3
+Paths: (1 available, best #1)
+Flags: (0x000002) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop, is extd
+  AS-Path: 65001 , path sourced external to AS
+    10.3.0.2 (metric 0) from 10.2.0.1 (10.2.0.1)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Extcommunity: RT:65003:30001 ENCAP:8 Site-ID:0:65001
+      PMSI Tunnel Attribute:
+        flags: 0x00, Tunnel type: Ingress Replication
+        Label: 30001, Tunnel Id: 10.3.0.2
+
+  Path-id 1 advertised to peers:
+    20.2.0.1       
+
+Route Distinguisher: 20.2.0.1:33017
+BGP routing table entry for [3]:[0]:[32]:[20.3.0.2]/88, version 6
+Paths: (1 available, best #1)
+Flags: (0x000002) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: external, path is valid, is best path, no labeled nexthop, is extd
+  AS-Path: 65002 , path sourced external to AS
+    20.3.0.2 (metric 0) from 20.2.0.1 (20.2.0.1)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Extcommunity: RT:65003:30001 ENCAP:8 Site-ID:0:65002
+      PMSI Tunnel Attribute:
+        flags: 0x00, Tunnel type: Ingress Replication
+        Label: 30001, Tunnel Id: 20.3.0.2
+
+  Path-id 1 advertised to peers:
+    10.2.0.1
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 5
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP routing table information for VRF default, address family L2VPN EVPN
+

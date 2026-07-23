@@ -1,0 +1,81 @@
+Host: bgw2
+Management IP: 192.168.2.145
+EVE node: NXOS17
+Role: border_gateway
+Stage: baseline
+Category: vxlan_nve
+Run ID: 20260723T155701Z
+
+Collection result: completed
+Commands attempted: 4
+Commands failed: 0
+
+================================================================================
+COMMAND: show nve peers
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Interface Peer-IP                                 State LearnType Uptime   Router-Mac       
+--------- --------------------------------------  ----- --------- -------- -----------------
+nve1      10.3.0.2                                Up    CP        01:52:31 n/a              
+nve1      20.3.0.1                                Up    CP        00:55:27 5005.0000.1b08   
+nve1      20.3.0.3                                Up    CP        00:36:53 5006.0000.1b08
+
+================================================================================
+COMMAND: show nve vni
+STATUS: completed
+================================================================================
+
+OUTPUT:
+Codes: CP - Control Plane        DP - Data Plane          
+       UC - Unconfigured         SA - Suppress ARP        
+       S-ND - Suppress ND        
+       SU - Suppress Unknown Unicast 
+       Xconn - Crossconnect      
+       MS-IR - Multisite Ingress Replication 
+       HYB - Hybrid IRB mode
+    
+Interface VNI      Multicast-group   State Mode Type [BD/VRF]      Flags
+--------- -------- ----------------- ----- ---- ------------------ -----
+nve1      30001    239.1.1.5         Up    CP   L2 [250]           MS-IR 
+nve1      50000    n/a               Up    CP   L3 [myvrf_50000]
+
+================================================================================
+COMMAND: show interface nve1
+STATUS: completed
+================================================================================
+
+OUTPUT:
+nve1 is up
+admin state is up,  Hardware: NVE
+  MTU 9216 bytes
+  Encapsulation VXLAN
+  Auto-mdix is turned off
+  RX
+    ucast: 3 pkts, 210 bytes - mcast: 10 pkts, 600 bytes
+  TX
+    ucast: 11 pkts, 1374 bytes - mcast: 0 pkts, 0 bytes
+
+================================================================================
+COMMAND: show running-config interface nve1
+STATUS: completed
+================================================================================
+
+OUTPUT:
+!Command: show running-config interface nve1
+!No configuration change since last restart
+!Time: Thu Jul 23 16:00:21 2026
+
+version 10.5(3) Bios:version  
+
+interface nve1
+  no shutdown
+  host-reachability protocol bgp
+  source-interface loopback1
+  multisite border-gateway interface loopback100
+  member vni 30001
+    multisite ingress-replication
+    mcast-group 239.1.1.5
+  member vni 50000 associate-vrf
+

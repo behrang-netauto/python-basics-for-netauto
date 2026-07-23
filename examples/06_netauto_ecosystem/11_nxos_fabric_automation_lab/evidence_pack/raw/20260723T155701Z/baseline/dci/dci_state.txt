@@ -1,0 +1,80 @@
+Host: dci
+Management IP: 192.168.2.147
+EVE node: NXOS19
+Role: dci
+Stage: baseline
+Category: dci_state
+Run ID: 20260723T155701Z
+
+Collection result: completed
+Commands attempted: 3
+Commands failed: 0
+
+================================================================================
+COMMAND: show bgp ipv4 unicast summary
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP summary information for VRF default, address family IPv4 Unicast
+BGP router identifier 100.100.100.100, local AS number 65003
+BGP table version is 11, IPv4 Unicast config peers 2, capable peers 2
+9 network entries and 9 paths using 3276 bytes of memory
+BGP attribute entries [3/1104], BGP AS path entries [2/12]
+BGP community entries [0/0], BGP clusterlist entries [0/0]
+
+Neighbor        V    AS    MsgRcvd    MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+10.10.1.2       4 65002        118        116       11    0    0 01:52:20 4         
+10.10.1.6       4 65001        118        115       11    0    0 01:52:19 4
+
+================================================================================
+COMMAND: show ip route
+STATUS: completed
+================================================================================
+
+OUTPUT:
+IP Route Table for VRF "default"
+'*' denotes best ucast next-hop
+'**' denotes best mcast next-hop
+'[x/y]' denotes [preference/metric]
+'%<string>' in via output denotes VRF <string>
+
+10.2.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.6, [20/0], 01:52:21, bgp-65003, external, tag 65001
+10.3.0.2/32, ubest/mbest: 1/0
+    *via 10.10.1.6, [20/0], 01:52:21, bgp-65003, external, tag 65001
+10.10.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.2, [20/0], 01:47:27, bgp-65003, external, tag 65002
+10.10.0.2/32, ubest/mbest: 1/0
+    *via 10.10.1.6, [20/0], 01:47:26, bgp-65003, external, tag 65001
+10.10.1.0/30, ubest/mbest: 1/0, attached
+    *via 10.10.1.1, Eth1/2, [0/0], 01:52:35, direct, tag 54321
+10.10.1.1/32, ubest/mbest: 1/0, attached
+    *via 10.10.1.1, Eth1/2, [0/0], 01:52:35, local, tag 54321
+10.10.1.4/30, ubest/mbest: 1/0, attached
+    *via 10.10.1.5, Eth1/1, [0/0], 01:52:35, direct, tag 54321
+10.10.1.5/32, ubest/mbest: 1/0, attached
+    *via 10.10.1.5, Eth1/1, [0/0], 01:52:35, local, tag 54321
+20.2.0.1/32, ubest/mbest: 1/0
+    *via 10.10.1.2, [20/0], 01:52:21, bgp-65003, external, tag 65002
+20.3.0.2/32, ubest/mbest: 1/0
+    *via 10.10.1.2, [20/0], 01:52:21, bgp-65003, external, tag 65002
+100.100.100.100/32, ubest/mbest: 2/0, attached
+    *via 100.100.100.100, Lo0, [0/0], 01:55:02, local
+    *via 100.100.100.100, Lo0, [0/0], 01:55:02, direct
+
+================================================================================
+COMMAND: show running-config interface loopback0
+STATUS: completed
+================================================================================
+
+OUTPUT:
+!Command: show running-config interface loopback0
+!No configuration change since last restart
+!Time: Thu Jul 23 15:59:52 2026
+
+version 10.5(3) Bios:version  
+
+interface loopback0
+  ip address 100.100.100.100/32
+

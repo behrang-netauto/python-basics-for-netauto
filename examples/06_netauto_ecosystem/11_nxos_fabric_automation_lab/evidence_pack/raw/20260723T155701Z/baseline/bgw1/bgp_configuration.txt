@@ -1,0 +1,47 @@
+Host: bgw1
+Management IP: 192.168.2.141
+EVE node: NXOS2
+Role: border_gateway
+Stage: baseline
+Category: bgp_configuration
+Run ID: 20260723T155701Z
+
+Collection result: completed
+Commands attempted: 1
+Commands failed: 0
+
+================================================================================
+COMMAND: show running-config | section bgp
+STATUS: completed
+================================================================================
+
+OUTPUT:
+feature bgp
+  host-reachability protocol bgp
+router bgp 65001
+  router-id 10.2.0.1
+  address-family ipv4 unicast
+    redistribute direct route-map rmap-redist-direct
+    maximum-paths 64
+    maximum-paths ibgp 64
+  neighbor 10.2.0.3
+    remote-as 65001
+    update-source loopback0
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+  neighbor 10.10.1.5
+    remote-as 65003
+    update-source Ethernet1/3
+    address-family ipv4 unicast
+      next-hop-self
+  neighbor 100.100.100.100
+    remote-as 65003
+    update-source loopback0
+    ebgp-multihop 5
+    peer-type fabric-external
+    address-family l2vpn evpn
+      send-community
+      send-community extended
+      rewrite-evpn-rt-asn
+

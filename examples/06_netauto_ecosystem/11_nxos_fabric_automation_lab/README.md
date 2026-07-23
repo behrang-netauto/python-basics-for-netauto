@@ -2,7 +2,7 @@
 
 This project is a multi-phase automation lab built around an NX-OS VXLAN EVPN Multisite fabric in EVE-NG.
 
-Phase 1 collects operational evidence from the fabric and runs controlled reachability probes from Linux endpoints. It does not decide whether the network is healthy. Its job is to capture a complete, reviewable record that can be assessed later without reconnecting to the lab.
+Phase 1 collects operational evidence from the fabric, captures the running configuration of each NX-OS device and runs controlled reachability probes from Linux endpoints. It does not decide whether the network is healthy. Its job is to capture a complete, reviewable record that can be assessed later without reconnecting to the lab.
 
 No device configuration is changed during this phase.
 
@@ -35,7 +35,7 @@ Each endpoint has a separate management interface for Ansible and uses `eth0` fo
 The collection flow is:
 
 ```text
-baseline collection
+running-configuration snapshot and baseline collection
         ↓
 endpoint traffic probes
         ↓
@@ -58,6 +58,18 @@ NX-OS commands are selected by device role and executed independently. The basel
 - MAC, ARP and EVPN Type-2 learning before the probes
 
 If an individual command fails, the remaining commands still run. The failure is preserved in the raw output and the run is marked `partial` instead of being silently discarded.
+
+### Running-configuration snapshots
+
+The playbook runs `show running-config` once on every in-scope NX-OS device and stores the returned configuration separately from the operational command output:
+
+```text
+raw/<RUN_ID>/configuration_snapshots/<device>/running_config.cfg
+```
+
+These snapshots provide the configuration input for the section-aware compliance checks planned for Phase 2. They are observed device state, not golden configurations.
+
+Snapshot files are written with mode `0600`. Because a running configuration can still contain sensitive values, the files should be reviewed and sanitized before they are added to a public repository.
 
 ### Endpoint traffic probes
 
@@ -111,6 +123,9 @@ evidence_pack/
 │       ├── baseline/
 │       │   └── <device>/
 │       │       └── <command_group>.txt
+│       ├── configuration_snapshots/
+│       │   └── <device>/
+│       │       └── running_config.cfg
 │       ├── traffic_probes/
 │       │   └── <probe_id>.txt
 │       └── post_probe/
@@ -126,7 +141,7 @@ evidence_pack/
 
 The three output forms serve different purposes:
 
-- `raw/` preserves command-level evidence for review and troubleshooting.
+- `raw/` preserves command-level evidence, configuration snapshots and probe output for review and troubleshooting.
 - `collection_results.json` provides a stable input for automated assessment.
 - `evidence_report.md` is a concise index of what ran, what was captured and where the files were written.
 
@@ -194,7 +209,9 @@ python -m json.tool \
 
 ## Phase 2
 
-Phase 2 will consume the Phase 1 artifacts and compare the observed state with an `expected_state.yml` definition. The first assessment checks are planned for:
+Phase 2 will consume the Phase 1 artifacts through two separate check families.
+
+Operational command output will be parsed with Genie or a small custom parser where Genie coverage is not available. The normalized observed state will be evaluated against `expected_state.yml`. The first operational assessment checks are planned for:
 
 - OSPF neighbors
 - BGP EVPN sessions
@@ -204,8 +221,26 @@ Phase 2 will consume the Phase 1 artifacts and compare the observed state with a
 - endpoint learning
 - endpoint reachability
 
-The assessment layer will assign statuses such as `PASS`, `FAIL`, `WARNING`, `NOT TESTED` and `NOT APPLICABLE`. Keeping assessment separate from collection means a fabric can produce a complete evidence run even when some of its control-plane or data-plane checks fail.
+Running-configuration snapshots will follow a separate path. `ciscoconfparse2` will extract the relevant configuration sections, normalize them and compare them with the corresponding golden configuration.
+
+Both operational assessment checks and configuration compliance checks will feed the same deterministic Check Engine. It will assign statuses such as `PASS`, `FAIL`, `WARNING`, `NOT TESTED` and `NOT APPLICABLE`.
+
+Keeping assessment separate from collection means a fabric can produce a complete evidence run even when some of its control-plane, data-plane or configuration checks fail.
 
 ## Later work
 
-The next major stage after automated assessment is configuration compliance and controlled remediation. That stage will introduce expected configuration, dry-run checks, backups, rollback and before/after evidence collection. It is deliberately outside the current read-only workflow.
+Phase 3 will introduce human-approved remediation. An AI-assisted layer may propose a structured remediation plan, but a policy check and explicit operator approval will be required before an automation executor applies it.
+
+Each approved change cycle will reuse the existing workflow:
+
+```text
+remediation
+    ↓
+Phase 1 recollection
+    ↓
+Phase 2 reassessment
+    ↓
+healthy or another approved plan
+```
+
+Backups, rollback, allowed-command policies and stop conditions are deliberately outside the current read-only workflow.

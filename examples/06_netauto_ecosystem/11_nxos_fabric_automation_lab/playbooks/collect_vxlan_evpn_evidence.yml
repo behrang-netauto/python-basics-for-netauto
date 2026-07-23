@@ -37,6 +37,7 @@
         mode: "0755"
       loop:
         - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/baseline"
+        - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/configuration_snapshots"
         - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/traffic_probes"
         - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ raw_evidence_dir_effective }}/{{ run_id_effective }}/post_probe"
         - "{{ project_root_effective }}/{{ evidence_root_effective }}/{{ structured_evidence_dir_effective }}/{{ run_id_effective }}"
@@ -64,6 +65,12 @@
           {{- hostvars['localhost']['raw_evidence_dir_effective'] }}/
           {{- hostvars['localhost']['run_id_effective'] }}/baseline/
           {{- inventory_hostname }}
+        device_configuration_snapshot_dir: >-
+          {{ hostvars['localhost']['project_root_effective'] }}/
+          {{- hostvars['localhost']['evidence_root_effective'] }}/
+          {{- hostvars['localhost']['raw_evidence_dir_effective'] }}/
+          {{- hostvars['localhost']['run_id_effective'] }}/configuration_snapshots/
+          {{- inventory_hostname }}
 
     - name: "Select baseline command groups for this device role"
       ansible.builtin.set_fact:
@@ -87,6 +94,33 @@
         state: directory
         mode: "0755"
       delegate_to: localhost
+
+    - name: "Create the configuration snapshot directory for this device"
+      ansible.builtin.file:
+        path: "{{ device_configuration_snapshot_dir }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: "Capture the running configuration for compliance assessment"
+      cisco.nxos.nxos_command:
+        commands:
+          - show running-config
+      register: running_config_snapshot_result
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Write the running configuration snapshot"
+      ansible.builtin.copy:
+        dest: "{{ device_configuration_snapshot_dir }}/running_config.cfg"
+        mode: "0600"
+        content: "{{ running_config_snapshot_result.stdout[0] }}\n"
+      delegate_to: localhost
+      when:
+        - not (running_config_snapshot_result.failed | default(false))
+        - not (running_config_snapshot_result.unreachable | default(false))
+        - running_config_snapshot_result.stdout is defined
+        - running_config_snapshot_result.stdout | length > 0
 
     - name: "Collect each baseline command independently"
       cisco.nxos.nxos_command:
@@ -387,9 +421,12 @@
             post_planned=0,
             post_completed=0,
             probes_planned=traffic_probes.probes | length,
-            probes_executed=0
+            probes_executed=0,
+            snapshots_planned=collected_nxos_hosts | length,
+            snapshots_completed=0
           ) -%}
           {%- set baseline_devices = {} -%}
+          {%- set configuration_snapshot_devices = {} -%}
           {%- set post_devices = {} -%}
           {%- set probe_records = [] -%}
           {%- set all_baseline_sets = baseline_only_command_sets | combine(pre_post_comparison_command_sets) -%}
@@ -429,6 +466,35 @@
               'planned_commands': host_counts.planned,
               'completed_commands': host_counts.completed,
               'commands': command_records
+            }}) -%}
+          {%- endfor -%}
+
+          {%- for host in collected_nxos_hosts -%}
+            {%- set hv = hostvars[host] -%}
+            {%- set snapshot_registered = hv.running_config_snapshot_result | default({}) -%}
+            {%- set snapshot_failed = snapshot_registered.failed | default(false) -%}
+            {%- set snapshot_unreachable = snapshot_registered.unreachable | default(false) -%}
+            {%- set snapshot_stdout = snapshot_registered.stdout[0]
+              if snapshot_registered.stdout is defined and
+                 snapshot_registered.stdout | length > 0
+              else '' -%}
+            {%- set snapshot_collected =
+              not snapshot_failed and
+              not snapshot_unreachable and
+              snapshot_stdout | length > 0 -%}
+            {%- if snapshot_collected -%}
+              {%- set counts.snapshots_completed = counts.snapshots_completed + 1 -%}
+            {%- endif -%}
+            {%- set _ = configuration_snapshot_devices.update({host: {
+              'role': hv.fabric_role | default('not recorded'),
+              'management_ip': hv.ansible_host | default('not recorded'),
+              'collection_status': 'collected' if snapshot_collected else 'error',
+              'command': 'show running-config',
+              'message': snapshot_registered.msg | default(''),
+              'raw_file': (
+                'raw/' ~ run_id_effective ~ '/configuration_snapshots/' ~
+                host ~ '/running_config.cfg'
+              ) if snapshot_collected else none
             }}) -%}
           {%- endfor -%}
 
@@ -526,9 +592,15 @@
           {%- endfor -%}
 
           {%- set baseline_errors = counts.baseline_planned - counts.baseline_completed -%}
+          {%- set snapshot_errors = counts.snapshots_planned - counts.snapshots_completed -%}
           {%- set probe_errors = counts.probes_planned - counts.probes_executed -%}
           {%- set post_errors = counts.post_planned - counts.post_completed -%}
-          {%- set overall_status = 'complete' if baseline_errors == 0 and probe_errors == 0 and post_errors == 0 else 'partial' -%}
+          {%- set overall_status = 'complete'
+            if baseline_errors == 0 and
+               snapshot_errors == 0 and
+               probe_errors == 0 and
+               post_errors == 0
+            else 'partial' -%}
           {{ {
             'schema_version': 1,
             'run': {
@@ -551,6 +623,11 @@
                 'completed': counts.baseline_completed,
                 'errors': baseline_errors
               },
+              'configuration_snapshots': {
+                'planned': counts.snapshots_planned,
+                'collected': counts.snapshots_completed,
+                'errors': snapshot_errors
+              },
               'traffic_probes': {
                 'planned': counts.probes_planned,
                 'executed': counts.probes_executed,
@@ -563,6 +640,7 @@
               }
             },
             'baseline': {'devices': baseline_devices},
+            'configuration_snapshots': {'devices': configuration_snapshot_devices},
             'traffic_probes': probe_records,
             'post_probe': {'devices': post_devices},
             'artifacts': {

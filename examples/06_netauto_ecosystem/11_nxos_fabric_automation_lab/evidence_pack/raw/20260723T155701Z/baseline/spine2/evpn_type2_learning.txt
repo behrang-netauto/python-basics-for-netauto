@@ -1,0 +1,96 @@
+Host: spine2
+Management IP: 192.168.2.146
+EVE node: NXOS18
+Role: spine
+Stage: baseline
+Category: evpn_type2_learning
+Run ID: 20260723T155701Z
+
+Collection result: completed
+Commands attempted: 1
+Commands failed: 0
+
+================================================================================
+COMMAND: show bgp l2vpn evpn route-type 2
+STATUS: completed
+================================================================================
+
+OUTPUT:
+BGP routing table information for VRF default, address family L2VPN EVPN
+Route Distinguisher: 20.2.0.1:33017
+BGP routing table entry for [2]:[0]:[0]:[48]:[5011.0000.1b08]:[0]:[0.0.0.0]/216, version 8
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: internal, path is valid, is best path, no labeled nexthop
+  AS-Path: NONE, path sourced internal to AS
+    20.3.0.2 (metric 41) from 20.2.0.1 (20.2.0.1)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001
+      Extcommunity: RT:65002:30001 SOO:20.2.0.1:512 ENCAP:8
+          MAC Mobility Sequence:01:0
+
+  Path-id 1 advertised to peers:
+    20.2.0.2           20.2.0.3       
+
+Route Distinguisher: 20.2.0.2:33017
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[0]:[0.0.0.0]/216, version 20
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: internal, path is valid, is best path, no labeled nexthop
+  AS-Path: NONE, path sourced internal to AS
+    20.3.0.1 (metric 41) from 20.2.0.2 (20.2.0.2)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001
+      Extcommunity: RT:65002:30001 ENCAP:8
+
+  Path-id 1 advertised to peers:
+    20.2.0.1           20.2.0.3       
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0e00]:[32]:[10.10.10.11]/272, version 16
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: internal, path is valid, is best path, no labeled nexthop
+  AS-Path: NONE, path sourced internal to AS
+    20.3.0.1 (metric 41) from 20.2.0.2 (20.2.0.2)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30001 50000
+      Extcommunity: RT:65002:30001 RT:65002:50000 ENCAP:8 Router MAC:5005.0000.1b08
+
+  Path-id 1 advertised to peers:
+    20.2.0.1           20.2.0.3       
+
+Route Distinguisher: 20.2.0.3:33067
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0f00]:[0]:[0.0.0.0]/216, version 22
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: internal, path is valid, is best path, no labeled nexthop
+  AS-Path: NONE, path sourced internal to AS
+    20.3.0.3 (metric 41) from 20.2.0.3 (20.2.0.3)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30000
+      Extcommunity: RT:65002:30000 ENCAP:8
+
+  Path-id 1 advertised to peers:
+    20.2.0.1           20.2.0.2       
+BGP routing table entry for [2]:[0]:[0]:[48]:[0050.0000.0f00]:[32]:[10.10.11.11]/272, version 14
+Paths: (1 available, best #1)
+Flags: (0x000202) (high32 00000000) on xmit-list, is not in l2rib/evpn, is not in HW
+
+  Advertised path-id 1
+  Path type: internal, path is valid, is best path, no labeled nexthop
+  AS-Path: NONE, path sourced internal to AS
+    20.3.0.3 (metric 41) from 20.2.0.3 (20.2.0.3)
+      Origin IGP, MED not set, localpref 100, weight 0
+      Received label 30000 50000
+      Extcommunity: RT:65002:30000 RT:65002:50000 ENCAP:8 Router MAC:5006.0000.1b08
+
+  Path-id 1 advertised to peers:
+    20.2.0.1           20.2.0.2
+
